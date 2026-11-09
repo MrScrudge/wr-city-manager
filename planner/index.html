@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><title>Міський планувальник</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="panel top">
+ <div class="bar"><span>Міський планувальник</span></div>
+ <div class="row">
+  <label>Місто:</label><select id="citySel"></select>
+  <button id="cityNew">Створити місто</button><button id="cityDel">Видалити місто</button>
+  <button id="expBtn">Експорт</button><button id="impBtn">Імпорт</button><button id="expPng">Зберегти PNG</button><button id="expPdf">Друк / PDF</button><input type="file" id="impFile" accept=".json" class="hidden">
+ </div>
+</header>
+<aside class="panel left">
+ <div class="bar"><span>Інструменти</span></div>
+ <div class="body tools">
+  <label class="sw"><input type="checkbox" id="tGrid"><i></i><span>Показати сітку</span></label>
+  <label class="sw"><input type="checkbox" id="tSnapGrid"><i></i><span>Прив’язка до сітки</span></label>
+  <label class="sw"><input type="checkbox" id="tMagnet"><i></i><span>Магніт блоків</span></label>
+  <label class="sw"><input type="checkbox" id="tMeters"><i></i><span>Показувати метри</span></label>
+  <label>Крок сітки <select id="gridSize"><option value="5">5 м</option><option value="10">10 м</option><option value="20">20 м</option></select></label>
+  <hr>
+  <div class="two"><button id="zIn">＋</button><button id="zOut">－</button></div>
+  <div class="two"><button id="zReset">Масштаб 100%</button><button id="zCenter">До центру</button></div>
+  <hr>
+  <div class="two"><button id="bUndo">Скасувати</button><button id="bDup">Дублювати</button></div>
+  <div class="two"><button id="bRotL">⟲ 90°</button><button id="bRotR">⟳ 90°</button></div>
+  <p class="hint">Полотно 20 000 × 20 000 м, клітинка = крок сітки. Колесо — масштаб, середня/права кнопка або тло — переміщення. Ctrl/Shift+клік — кілька блоків, Shift+рамка або Ctrl+A — виділити багато.</p>
+ </div>
+ <div class="bar small"><span>Блоки</span></div>
+ <div class="body layers">
+  <div id="layers"></div>
+ </div>
+</aside>
+<main><div id="empty" class="hidden">Спочатку додайте місто на вкладці «Міста».</div><svg id="cv"><defs id="defs"></defs><g id="world"><rect id="canvas" x="0" y="0" width="20000" height="20000"/><rect id="grid" x="0" y="0" width="20000" height="20000"/><g id="blocks"></g><g id="mt"></g><g id="ov"></g></g></svg></main>
+<aside class="panel right">
+ <div class="bar libbar"><span>Бібліотека</span><button id="libAdd" class="plus" title="Додати свою іконку">+</button></div>
+ <div class="body list" id="palette"></div>
+</aside>
+<div id="dlg" class="hidden"><div class="card">
+ <h3>Додати свою іконку</h3>
+ <label>Назва<input id="cName" maxlength="40"></label>
+ <label>Колір фону<input id="cColor" type="color" value="#3b86c4"></label>
+ <label>Іконка (картинка)<input id="cFile" type="file" accept="image/*"></label>
+ <label class="sw"><input type="checkbox" id="cWhite" checked><i></i><span>Зробити іконку білою</span></label>
+ <div id="cPrev"></div>
+ <div class="two"><button id="cOk" disabled>Додати</button><button id="cCancel">Відміна</button></div>
+</div></div>
+<script src="app.js"></script></body></html>

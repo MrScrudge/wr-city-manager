@@ -1,0 +1,42 @@
+W&R City Manager
+Copyright (c) 2026  Mr.Scrudge https://github.com/MrScrudge
+
+Українська
+Ліцензія: Creative Commons «Із зазначенням авторства — Некомерційна — Без похідних» 4.0
+(CC BY-NC-ND 4.0).
+Дозволено безкоштовно поширювати програму БЕЗ змін, вказуючи автора і посилання на
+офіційну сторінку. Заборонено продавати та поширювати змінені версії.
+
+English
+License: Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International
+(CC BY-NC-ND 4.0).
+You may share the program free of charge WITHOUT changes, giving credit to the author and
+a link to the official page. Selling it and distributing modified versions is not allowed.
+
+Deutsch
+Lizenz: Creative Commons Namensnennung – Nicht kommerziell – Keine Bearbeitungen 4.0
+International (CC BY-NC-ND 4.0).
+Das Programm darf kostenlos und UNVERÄNDERT weitergegeben werden, unter Nennung des
+Autors und mit Link zur offiziellen Seite. Der Verkauf und die Weitergabe veränderter
+Versionen sind nicht gestattet.
+
+Full license text / Повний текст / Vollständiger Text:
+https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+Scope / Обсяг / Geltungsbereich
+UA: Ця ліцензія стосується ЛИШЕ коду програми та власних зображень автора (assets/calc.*, help/, assets/building.png тощо).
+    Іконки, текстури та інші матеріали гри в assets/game_assets.zip НЕ є частиною проєкту й НЕ охоплені цією ліцензією:
+    вони належать 3Division / їхнім власникам. Їх включено лише для роботи неофіційного фанатського помічника; на прохання
+    власників їх буде видалено.
+EN: This license covers ONLY the program code and the author's own images (assets/calc.*, help/, assets/building.png, ...).
+    The icons, textures and other game material in assets/game_assets.zip are NOT part of this project and are NOT covered by
+    this license: they belong to 3Division / their owners. They are included only so the unofficial fan helper can work, and
+    will be removed on request of the owners.
+DE: Diese Lizenz gilt NUR für den Programmcode und die eigenen Bilder des Autors (assets/calc.*, help/, assets/building.png usw.).
+    Die Symbole, Texturen und anderes Spielmaterial in assets/game_assets.zip sind KEIN Teil dieses Projekts und werden von
+    dieser Lizenz NICHT erfasst: sie gehören 3Division / ihren Eigentümern. Sie sind nur enthalten, damit der inoffizielle
+    Fan-Helfer funktioniert, und werden auf Wunsch der Eigentümer entfernt.
+Font / Шрифт / Schrift: Arimo (Apache License 2.0), assets/fonts.
+
+"Workers & Resources: Soviet Republic" and its assets belong to their owners (3Division).
+This is an unofficial fan-made helper and is not affiliated with them.

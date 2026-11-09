@@ -1,0 +1,92 @@
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;color:#4a2c1a;background:#3d5a2a;overflow:hidden;user-select:none;-webkit-user-select:none}
+input,textarea{user-select:text;-webkit-user-select:text}
+body{display:grid;grid-template-columns:290px 1fr 260px;grid-template-rows:auto 1fr;gap:8px;padding:8px}
+.panel{background:#ecd9ae url(../assets/game/ui/parchment.jpg) center/cover;border-radius:6px;box-shadow:0 3px 10px #0008;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.top{grid-column:1/4;flex-direction:row;align-items:center}
+.left{overflow-y:auto}
+.bar{background:#8f3430;color:#fff;padding:9px 14px;font-size:17px;white-space:nowrap}
+.bar.small{font-size:14px;padding:5px 10px}
+.top .bar{align-self:stretch;display:flex;align-items:center;min-width:240px}
+.row{display:flex;gap:8px;align-items:center;padding:6px 12px}
+.body{padding:10px;display:flex;flex-direction:column;gap:7px;overflow:auto;flex:1}
+.body.tools{flex:none}
+.body.layers{min-height:200px}
+button,select,input,textarea{font:inherit;font-size:14px;color:#4a2c1a;background:#f6e8c6;border:1px solid #b48f5a;border-radius:3px;padding:6px 8px}
+button{cursor:pointer}button:hover{background:#fff2d2}
+label{display:flex;flex-direction:column;gap:3px;font-size:13px}
+.row label{flex-direction:row;align-items:center;font-size:14px}
+input[type=color]{width:100%;height:32px;padding:2px}
+textarea{resize:vertical;font-size:13px}
+.two{display:flex;gap:6px}.two>*{flex:1;min-width:0}
+hr{border:0;border-top:1px solid #b48f5a88;width:100%;margin:2px 0}
+.hint{font-size:12px;line-height:1.4;margin:0}.hidden{display:none!important}
+/* перемикачі */
+.sw{flex-direction:row;align-items:center;gap:10px;font-size:14px;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw i{width:38px;height:20px;border-radius:10px;background:#b9a27a;border:1px solid #8a6d3b;position:relative;flex:none;transition:.15s}
+.sw i::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0006;transition:.15s}
+.sw input:checked+i{background:#8f3430;border-color:#6d2420}
+.sw input:checked+i::after{left:20px}
+/* полотно */
+main{border-radius:6px;overflow:hidden;box-shadow:0 3px 10px #0008;min-height:0}
+#cv{width:100%;height:100%;display:block;background:#1f2e16;cursor:default;touch-action:none}
+#cv.pan{cursor:grabbing}
+#canvas{fill:#6f9c4c;stroke:#fff;stroke-width:3;vector-effect:non-scaling-stroke;pointer-events:none}
+#grid{fill:url(#gp);pointer-events:none}
+#mt{pointer-events:none}
+.blk{cursor:move}
+.ct{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;text-align:center;font-family:Arial,sans-serif;color:#fff;pointer-events:none}
+.ct svg{flex:none}
+.lb{font-size:12px;line-height:1.15;text-shadow:-1px 0 #000b,1px 0 #000b,0 -1px #000b,0 1px #000b;word-break:break-word}
+.nt{font-size:10px;line-height:1.2;opacity:.7;white-space:pre-wrap;word-break:break-word;text-shadow:0 0 3px #000,0 0 3px #000}
+.tx{width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-family:Arial,sans-serif;line-height:1.15;white-space:pre-wrap;word-break:break-word;overflow:hidden;text-shadow:-1px 0 #000b,1px 0 #000b,0 -1px #000b,0 1px #000b;pointer-events:none}
+/* бібліотека */
+.item{display:flex;align-items:center;gap:10px;padding:5px 6px;border:1px solid transparent;border-radius:4px;cursor:grab;font-size:14px}
+.item:hover{background:#fff2d288;border-color:#b48f5a}
+.item i{width:34px;height:34px;border-radius:4px;border:1px solid #0006;display:grid;place-items:center;flex:none}
+.item svg{width:24px;height:24px}
+/* шари */
+.ly{border:1px solid #b48f5a;border-radius:4px;background:#f6e8c6aa;margin-bottom:5px}
+.ly.sel{border-color:#8f3430;box-shadow:0 0 0 2px #ffd54a,0 0 8px #ffd54a;background:#fff2d2}
+.ly.off{opacity:.55}
+.lh{display:flex;align-items:center;gap:6px;padding:4px 5px;cursor:pointer}
+.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.ib{padding:2px 6px;line-height:1;background:transparent;border:0;flex:none}
+.ib svg{width:16px;height:16px;display:block}
+.chip{width:22px;height:22px;border-radius:3px;border:1px solid #0006;display:grid;place-items:center;flex:none}
+.chip svg{width:16px;height:16px}
+.lb2{padding:6px 8px 8px;display:flex;flex-direction:column;gap:6px;border-top:1px solid #b48f5a88}
+::-webkit-scrollbar{width:12px}::-webkit-scrollbar-track{background:#e3d8c2}::-webkit-scrollbar-thumb{background:#f6e0b8;border:1px solid #9a8a70;border-radius:2px}
+/* налаштування блоку */
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.fr input{width:100%;min-width:0}
+.rowb{display:flex;gap:4px}.rowb>button{flex:1;min-width:0;padding:5px 2px;font-size:13px}
+.cg{display:grid;grid-template-columns:repeat(3,28px);gap:3px}
+.cg button{height:28px;padding:0;background:#e3d8c2}
+.cg button.on{background:#8f3430;border-color:#6d2420}
+.shp{display:flex;gap:10px;align-items:flex-start}.shp select{flex:1;min-width:0}
+.ly .lb2 label{font-size:12px}
+.ly input,.ly select,.ly textarea{width:100%;min-width:0}
+.lh .chip{background:#555}
+/* вбудований режим (у W&R City Manager) */
+main{position:relative}
+#empty{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:18px;text-shadow:0 1px 3px #000;z-index:2;pointer-events:none;text-align:center;padding:20px}
+html.host,html.host body{background:var(--paper,#f3e9d9)}
+html.host body{padding:0 0 2px;gap:6px}
+html.host .top{background:none;box-shadow:none;border-radius:0}
+html.host .row{padding:4px 2px}
+html.host .top .bar,html.host #cityNew,html.host #cityDel,html.host #expBtn,html.host #impBtn{display:none}
+
+.libbar{display:flex;align-items:center;justify-content:space-between}
+.plus{width:28px;height:28px;padding:0;font-size:20px;line-height:1;background:#f6e8c6;color:#8f3430;font-weight:bold}
+.item .nm{flex:1;min-width:0}
+.item .del{width:28px;height:28px;padding:3px;background:transparent;border:1px solid transparent;flex:none}
+.item .del:hover{background:#fff2d2;border-color:#b48f5a}.item .del svg{width:18px;height:18px}
+#dlg{position:fixed;inset:0;background:#0007;display:grid;place-items:center;z-index:50}
+#dlg .card{background:#f3e9d9;border:2px solid #8f3430;border-radius:6px;padding:14px 16px;width:320px;max-width:92vw;display:flex;flex-direction:column;gap:10px;color:#4a2c1a}
+#dlg h3{margin:0;color:#8f3430;font-size:17px}
+#dlg label:not(.sw){display:flex;flex-direction:column;gap:3px;font-size:13px}
+#dlg input[type=color]{height:34px;padding:2px;width:100%}
+#cPrev{width:56px;height:56px;border-radius:6px;border:1px solid #0006;display:grid;place-items:center;background:#888;align-self:center}
+#cPrev img{width:40px;height:40px}
