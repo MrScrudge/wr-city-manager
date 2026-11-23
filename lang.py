@@ -206,6 +206,21 @@ _T = {
     'Період': dict(en='Period', de='Zeitraum'),
     'Разом (3 зміни)': dict(en='Total (3 shifts)', de='Gesamt (3 Schichten)'),
     'Разом (1 зміна)': dict(en='Total (1 shift)', de='Gesamt (1 Schicht)'),
+    'Автофокус при наведенні миші': dict(en='Auto-focus on mouse hover', de='Autofokus beim Überfahren mit der Maus'),
+    'Вимкнути місто: сіре, не входить у загальні підрахунки': dict(en='Switch the city off: greyed out, not counted in the totals', de='Stadt ausschalten: grau, nicht in den Summen'),
+    'Діти й літні, %': dict(en='Children & elderly, %', de='Kinder & Ältere, %'),
+    'Колонка «Діти й літні, %» додається до норми міста, де ввімкнена іконка дітей і літніх.': dict(
+        en='The «Children & elderly, %» column is added to the rate of a city where the children and elderly icon is on.',
+        de='Die Spalte «Kinder & Ältere, %» wird zur Norm einer Stadt addiert, in der das Symbol für Kinder und Ältere aktiv ist.'),
+    'Діти й літні: додати до потреб населення цього міста (відсоток — у «Норми на 1000 жителів»)': dict(
+        en='Children and elderly: add them to the needs of this city\'s residents (the percent is set in «Rates per 1000 residents»)',
+        de='Kinder und Ältere: zum Bedarf der Einwohner dieser Stadt addieren (Prozent unter «Normen pro 1000 Einwohner»)'),
+    'Діти й літні: усі міста одразу': dict(en='Children and elderly: all cities at once', de='Kinder und Ältere: alle Städte auf einmal'),
+    'Діти й літні, %: на стільки зростає населення, і це значення для всіх ресурсів (окремо кожен можна змінити в колонці)': dict(
+        en='Children & elderly, %: the population grows by this, and it is the value for all resources (each can be changed in its column)',
+        de='Kinder & Ältere, %: um so viel wächst die Bevölkerung, und der Wert gilt für alle Ressourcen (einzeln in der Spalte änderbar)'),
+    'Діти й літні': dict(en='Children and elderly', de='Kinder und Ältere'),
+    'Усі ресурси': dict(en='All resources', de='Alle Ressourcen'),
     'Усього по місту': dict(en='City total', de='Stadt gesamt'),
     'Комунальні': dict(en='Utilities', de='Versorgung'),
     'Відкрити': dict(en='Open', de='Öffnen'),
@@ -388,14 +403,14 @@ HELP = {
 <h3>З чого почати</h3><ol>
 <li>На вкладці «Міста» натисни <b>+ Додати місто</b> [[city]], впиши назву й населення.
 Без створеного міста порахувати його ресурси не вийде.</li>
-<li>Розгорни місто ▸ і додай споруди [[building]] кнопкою <b>+ Додати об'єкт</b> (над списком споруд).
+<li>Розгорни місто ▸ і додай споруди [[building]] кнопкою <b>+ Додати об'єкт</b> (під списком споруд, зліва під червоною лінією).
 Впиши працівників: [[edu_c]] С — середня освіта, [[edu_b]] В — вища, одразу на 3 зміни.</li>
 <li>Для підприємств натисни піпетку [[pipette]] і обведи у грі вікно будівлі — виробництво й потреби запишуться самі.</li>
 <li>У рядку кожного міста праворуч від населення видно, скільки йому треба ресурсів (норма на 1000 жителів), а внизу — для всіх міст разом.</li></ol>
 <h3>Вікно</h3><ul>
 <li><b>Ctrl+Shift+K</b> — сховати / показати калькулятор будь-коли, навіть під час гри.</li>
 <li>Закріпити на панелі задач: запусти калькулятор, права кнопка по його значку на панелі задач → «Закріпити на панелі завдань».</li>
-<li>Тягни вікно за бордовий заголовок, розмір змінюй за правий нижній кут.</li>
+<li>Тягни вікно за бордовий заголовок, розмір змінюй за будь-який край чи кут вікна.</li>
 <li>[[minus]] — згорнути на панель задач, як звичайне вікно Windows; розгортаєш кліком по значку на панелі задач.</li>
 <li>[[pin_on]] — калькулятор закріплений поверх усіх вікон і гри; [[pin_off]] — звичайне вікно. Клік перемикає.</li>
 <li>[[help]] — ця інструкція; [[close]] — закрити (усе зберігається автоматично).</li>
@@ -403,11 +418,11 @@ HELP = {
 <li>Мова: УКР / ENG / DEU праворуч над таблицею. Назви споруд теж перекладаються.</li>
 <li>Значок калькулятора в треї Windows (біля годинника): клік — сховати / показати, права кнопка — меню.</li>
 <li>Видалив місто чи об'єкт помилково — <b>Скасувати</b> у смужці внизу або <b>Ctrl+Z</b>.
-Щодня програма робить копію даних у папці <b>backups</b> (останні 14 днів).</li>
+Щодня програма робить копію даних у папці <b>calc\\backups</b> (останні 14 днів).</li>
 <li>[[save]] під перемикачем мови — зберегти все в таблицю Excel (.xlsx): міста, баланс ресурсів, норми на 1000 жителів,
 мої об'єкти — за вибраний період і поточною мовою.</li>
 <li>Коли мишка зупиняється над калькулятором, він забирає фокус у гри — кліки й колесо не йдуть у гру.
-Мишка, що просто пролітає над ним, гру не чіпає. Якщо нічого не натиснув, фокус повертається грі.</li></ul>
+Мишка, що просто пролітає над ним, гру не чіпає. Якщо нічого не натиснув, фокус повертається грі. Це можна вимкнути в меню значка в треї: «Автофокус при наведенні миші».</li></ul>
 <h3>Вкладка «Міста»</h3><ul>
 <li>▸ біля назви розгортає місто; [[trash]] — видалити місто (під мишкою стає [[trash_red]]); ✕ — прибрати споруду.</li>
 <li>Назву споруди вибирай зі списку або впиши нову й натисни Enter — програма запам'ятає її цифри.</li>
@@ -415,7 +430,15 @@ HELP = {
 Перемикач <b>1 зміна / 3 зміни</b> показує людей на одну або на три зміни; перемикач <b>за трудодень / за місяць / за рік</b> показує виробництво й потреби за вибраний період. У самому низу — підсумки всіх міст і населення [[city]].</li>
 <li><b>Додатково ▸</b> у місті: будинки для С і В; зупинки — 1–2 на кожну посадку (жителів на посадку) і 1–2 на кожне підприємство (впиши їх кількість).</li>
 <li>Поля — це об'єкти «Поле мале / середнє / велике»: у колонці К-сть — кількість полів, урожай рахується за рік.
-Кнопка [[fertiliser]] у рядку поля перемикає <b>з добривами / без</b>: з добривами — більший урожай і добрива в потребах, без — менший урожай і без потреб.</li><li>Іконка карти [[map]] поруч із кошиком [[trash]] у заголовку міста відкриває вкладку <b>Planner</b> саме з цим містом.</li></ul>
+Кнопка [[fertiliser]] у рядку поля перемикає <b>з добривами / без</b>: з добривами — більший урожай і добрива в потребах, без — менший урожай і без потреб.</li><li>Іконка карти [[map]] поруч із кошиком [[trash]] у заголовку міста відкриває вкладку <b>Planner</b> саме з цим містом.</li>
+<li>У рядку споруди клік по <b>Продукт. %</b> відкриває повзунок (червоний до 100 %); число можна й вписати. Відсоток множить виробництво, потреби і людей [[edu_c]] С та [[edu_b]] В.</li>
+<li>Якщо в споруди кілька ресурсів, у колонках «Виробництво» і «Потреби» праворуч є стрілка ▾: вона розгортає решту ресурсів під першим, ▴ — згортає.</li>
+<li>У режимі <b>1 зміна</b> поля С і В теж можна редагувати: впиши людей на одну зміну, програма сама зберігає їх на 3 зміни. Підпис колонок показує «(1 зміна)» або «(3 зміни)».</li>
+<li>Іконка [[off]] у заголовку міста вимикає місто: картка стає сірою, а місто не входить у підсумки внизу і на вкладці «Виробництво». Клік ще раз — вмикає.</li>
+<li>Іконка [[kids]] (діти й літні) стоїть між В і «Разом» у кожному місті і внизу для всіх міст одразу. Коли вона ввімкнена, поруч з нею видно, скільки дітей і літніх (відсоток від С + В), до потреб населення додається цей відсоток, а «Разом» = С + В + діти й літні (зупинки теж рахуються від більшого населення).</li></ul>
+<h3>Вкладка «Виробництво»</h3><ul>
+<li>Для кожного міста: що виробляють його споруди і що їм потрібно за вибраний період ([[building]] іконка ресурсу і кількість). Під червоною лінією — підсумок «Усі міста».</li>
+<li>Місто, вимкнене іконкою [[off]], лишається в списку сірим, але в підсумок не входить. Цифри оновлюються, коли міняєш споруди, відсоток, кількість, назву міста чи період.</li></ul>
 <h3>Вкладка «Planner»</h3><ul>
 <li>[[map]] Планувальник міста на карті 20 000 × 20 000 м. Список міст — той самий, що на вкладці «Міста» [[city]]; у кожного міста своя карта.</li>
 <li>[[plate_blue]] Праворуч <b>Бібліотека</b>: клік по блоку ставить його на карту (міські зони, транспорт, електро вузли, дороги, колії, річки, електромережа, текст). Ліворуч у <b>Блоках</b> — лише блоки вибраного міста: клік виділяє блок, ▸ відкриває налаштування (блоки з'являються згорнутими), [[eye]] ховає.</li>
@@ -446,21 +469,21 @@ HELP = {
 <li>Зліва від дискети — калькулятор: впиши будь-яку кількість жителів, і під ним з'явиться, скільки потрібно ресурсів:
 [[eletronics]] електроніка, [[food]] хліб, [[meat]] м'ясо, [[clothes]] одяг, [[alcohol]] алкоголь,
 а також [[eletric]] [[water]] [[usagewater]] [[waste_mixed]] [[heat]] комунальні (коли для них задана норма). Хрестик ✕ у вікні результату скидає число до нуля.</li>
-<li><b>?</b> — формула розрахунку з поточними числами. <b>✎</b> — внести свої норми на 1000 жителів (за рік); нуль — ресурс не показується.</li>
+<li><b>?</b> — формула розрахунку з поточними числами. <b>✎</b> — внести свої норми на 1000 жителів (за рік); нуль — ресурс не показується. У цьому вікні біля кожного ресурсу є колонка <b>Діти й літні, %</b> (за замовчуванням 30), а внизу — іконка [[kids]] з полем %: одне значення для всіх ресурсів і зростання населення.</li>
 <li>Перемикач <b>за трудодень / за місяць / за рік</b> міняє період і для калькулятора, і для рядків міст.</li></ul>
 """,
     'en': _CSS + """
 <h3>Getting started</h3><ol>
 <li>On the «Cities» tab click <b>+ Add city</b> [[city]], type its name and population.
 A city has to exist before its resources can be calculated.</li>
-<li>Expand the city ▸ and add buildings [[building]] with <b>+ Add building</b>.
+<li>Expand the city ▸ and add buildings [[building]] with <b>+ Add building</b> (under the list of buildings, at the left end of the red line).
 Enter workers: [[edu_c]] S — secondary education, [[edu_b]] H — higher, already for 3 shifts.</li>
 <li>For factories click the pipette [[pipette]] and outline the building window in the game — production and needs are filled in.</li>
 <li>In every city row, right of the population, you see what the city needs (rates per 1000 residents); at the bottom — for all cities together.</li></ol>
 <h3>Window</h3><ul>
 <li><b>Ctrl+Shift+K</b> — hide / show the calculator at any time, also while playing.</li>
 <li>Pin to the taskbar: start the calculator, right-click its taskbar icon → «Pin to taskbar».</li>
-<li>Drag the window by the maroon title bar, resize it from the bottom-right corner.</li>
+<li>Drag the window by the maroon title bar, resize it from any edge or corner.</li>
 <li>[[minus]] — minimize to the taskbar like any Windows window; click its taskbar icon to restore it.</li>
 <li>[[pin_on]] — the calculator stays on top of all windows and the game; [[pin_off]] — a normal window. Click to switch.</li>
 <li>[[help]] — these instructions; [[close]] — close (everything is saved automatically).</li>
@@ -468,11 +491,11 @@ Enter workers: [[edu_c]] S — secondary education, [[edu_b]] H — higher, alre
 <li>Language: УКР / ENG / DEU above the table on the right. Building names are translated too.</li>
 <li>The calculator icon in the Windows tray (by the clock): click — hide / show, right click — menu.</li>
 <li>Deleted a city or a building by mistake — <b>Cancel</b> in the note at the bottom or <b>Ctrl+Z</b>.
-Every day the program keeps a copy of the data in <b>backups</b> (the last 14 days).</li>
+Every day the program keeps a copy of the data in <b>calc\\backups</b> (the last 14 days).</li>
 <li>[[save]] under the language switch — save everything as an Excel spreadsheet (.xlsx): cities, resource balance,
 needs per 1000 residents, my buildings — for the chosen period, in the current language.</li>
 <li>When the mouse stops over the calculator it takes the focus from the game — clicks and the wheel do not reach the game.
-A mouse just passing over does not touch the game. If nothing was clicked, the game gets its focus back.</li></ul>
+A mouse just passing over does not touch the game. If nothing was clicked, the game gets its focus back. You can turn this off in the tray icon menu: «Auto-focus on mouse hover».</li></ul>
 <h3>«Cities» tab</h3><ul>
 <li>▸ next to the name expands the city; [[trash]] deletes the city (turns [[trash_red]] under the mouse); ✕ removes a building.</li>
 <li>Pick a building name from the list or type a new one and press Enter — its numbers are remembered.</li>
@@ -480,7 +503,15 @@ A mouse just passing over does not touch the game. If nothing was clicked, the g
 The <b>1 shift / 3 shifts</b> switch shows people for one or three shifts; the <b>per workday / per month / per year</b> switch shows production and needs for that period. At the very bottom: totals of all cities and the population [[city]].</li>
 <li><b>Extra ▸</b> in a city: housing for S and H workers; bus stops — 1–2 per boarding place (residents per place) and 1–2 per enterprise (enter how many).</li>
 <li>Fields are the buildings «Small / Medium / Big field»: Count = number of fields, the harvest is per year.
-The [[fertiliser]] button in a field row switches <b>with / without fertilizer</b>: with — bigger harvest and fertilizer in the needs, without — smaller harvest, no needs.</li><li>The map icon [[map]] next to the trash can [[trash]] in a city header opens the <b>Planner</b> tab with that very city.</li></ul>
+The [[fertiliser]] button in a field row switches <b>with / without fertilizer</b>: with — bigger harvest and fertilizer in the needs, without — smaller harvest, no needs.</li><li>The map icon [[map]] next to the trash can [[trash]] in a city header opens the <b>Planner</b> tab with that very city.</li>
+<li>In a building row, a click on <b>Prod. %</b> opens a slider (red up to 100 %); you can also type the number. The percent multiplies production, needs and the people [[edu_c]] S and [[edu_b]] H.</li>
+<li>If a building has several resources, the «Production» and «Needs» columns have a ▾ arrow on the right: it opens the other resources under the first one, ▴ closes them.</li>
+<li>In <b>1 shift</b> mode the S and H fields can be edited too: type the people for one shift, the program keeps them for 3 shifts. The column titles show «(1 shift)» or «(3 shifts)».</li>
+<li>The [[off]] icon in a city header switches the city off: the card turns grey and the city is not counted in the totals at the bottom and on the «Production» tab. Click again to switch it on.</li>
+<li>The [[kids]] icon (children and elderly) stands between H and «Total» in every city and at the bottom for all cities at once. When it is on, the number of children and elderly (a percent of S + H) is shown next to it, that percent is added to the needs of the residents, and «Total» = S + H + children and elderly (bus stops are counted from the larger population too).</li></ul>
+<h3>«Production» tab</h3><ul>
+<li>For every city: what its buildings produce and need for the chosen period ([[building]] resource icon and amount). Under the red line — the «All cities» total.</li>
+<li>A city switched off with the [[off]] icon stays in the list, grey, but is not in the total. The numbers update when you change buildings, the percent, the count, the city name or the period.</li></ul>
 <h3>«Planner» tab</h3><ul>
 <li>[[map]] City planner on a 20,000 × 20,000 m map. The city list is the same as on the «Cities» tab [[city]]; every city has its own map.</li>
 <li>[[plate_blue]] <b>Library</b> on the right: click a block to place it on the map (city zones, transport, power nodes, roads, rails, rivers, power grid, text). <b>Blocks</b> on the left lists only the selected city's blocks: click selects, ▸ opens settings (blocks appear collapsed), [[eye]] hides.</li>
@@ -509,21 +540,21 @@ two equal names are not allowed.</li>
 <li>Left of the save button there is a calculator: type any number of residents and below it you get the resources needed:
 [[eletronics]] electronics, [[food]] bread, [[meat]] meat, [[clothes]] clothes, [[alcohol]] alcohol,
 and [[eletric]] [[water]] [[usagewater]] [[waste_mixed]] [[heat]] utilities (once a rate is set for them). The ✕ in the result window resets the number to zero.</li>
-<li><b>?</b> — the calculation formula with the current numbers. <b>✎</b> — enter your own rates per 1000 residents (per year); zero — the resource is not shown.</li>
+<li><b>?</b> — the calculation formula with the current numbers. <b>✎</b> — enter your own rates per 1000 residents (per year); zero — the resource is not shown. In this window every resource has a <b>Children &amp; elderly, %</b> column (30 by default), and at the bottom there is the [[kids]] icon with a % field: one value for all resources and the growth of the population.</li>
 <li>The <b>per workday / per month / per year</b> switch changes the period for the calculator and for the city rows.</li></ul>
 """,
     'de': _CSS + """
 <h3>Erste Schritte</h3><ol>
 <li>Im Reiter «Städte» auf <b>+ Stadt hinzufügen</b> [[city]] klicken, Namen und Einwohnerzahl eintragen.
 Ohne angelegte Stadt lassen sich ihre Ressourcen nicht berechnen.</li>
-<li>Stadt mit ▸ ausklappen und Gebäude [[building]] mit <b>+ Gebäude hinzufügen</b> anlegen.
+<li>Stadt mit ▸ ausklappen und Gebäude [[building]] mit <b>+ Gebäude hinzufügen</b> anlegen (unter der Gebäudeliste, am linken Ende der roten Linie).
 Arbeiter eintragen: [[edu_c]] M — mittlere Bildung, [[edu_b]] H — Hochschulbildung, bereits für 3 Schichten.</li>
 <li>Für Betriebe die Pipette [[pipette]] anklicken und im Spiel das Gebäudefenster umranden — Produktion und Bedarf werden eingetragen.</li>
 <li>In jeder Stadtzeile rechts neben den Einwohnern steht, was die Stadt braucht (Raten pro 1000 Einwohner); unten — für alle Städte zusammen.</li></ol>
 <h3>Fenster</h3><ul>
 <li><b>Strg+Umschalt+K</b> — Rechner jederzeit aus- / einblenden, auch im Spiel.</li>
 <li>An die Taskleiste anheften: Rechner starten, Rechtsklick auf sein Symbol in der Taskleiste → «An Taskleiste anheften».</li>
-<li>Fenster an der dunkelroten Titelleiste ziehen, Größe unten rechts ändern.</li>
+<li>Fenster an der dunkelroten Titelleiste ziehen, Größe an jedem Rand oder in jeder Ecke ändern.</li>
 <li>[[minus]] — in die Taskleiste minimieren wie jedes Windows-Fenster; Klick auf das Taskleistensymbol stellt es wieder her.</li>
 <li>[[pin_on]] — der Rechner bleibt über allen Fenstern und dem Spiel; [[pin_off]] — normales Fenster. Klick schaltet um.</li>
 <li>[[help]] — diese Anleitung; [[close]] — schließen (alles wird automatisch gespeichert).</li>
@@ -531,11 +562,11 @@ Arbeiter eintragen: [[edu_c]] M — mittlere Bildung, [[edu_b]] H — Hochschulb
 <li>Sprache: УКР / ENG / DEU rechts über der Tabelle. Gebäudenamen werden mit übersetzt.</li>
 <li>Rechner-Symbol im Windows-Infobereich (bei der Uhr): Klick — aus- / einblenden, Rechtsklick — Menü.</li>
 <li>Stadt oder Gebäude versehentlich gelöscht — <b>Abbrechen</b> in der Leiste unten oder <b>Strg+Z</b>.
-Jeden Tag legt das Programm eine Kopie der Daten in <b>backups</b> ab (die letzten 14 Tage).</li>
+Jeden Tag legt das Programm eine Kopie der Daten in <b>calc\\backups</b> ab (die letzten 14 Tage).</li>
 <li>[[save]] unter der Sprachwahl — alles als Excel-Tabelle (.xlsx) speichern: Städte, Ressourcenbilanz, Bedarf pro 1000 Einwohner,
 meine Gebäude — für den gewählten Zeitraum, in der aktuellen Sprache.</li>
 <li>Bleibt die Maus über dem Rechner stehen, holt er sich den Fokus vom Spiel — Klicks und Mausrad gehen nicht ins Spiel.
-Nur darüber hinweg bewegt: das Spiel bleibt unberührt. Ohne Klick bekommt das Spiel den Fokus zurück.</li></ul>
+Nur darüber hinweg bewegt: das Spiel bleibt unberührt. Ohne Klick bekommt das Spiel den Fokus zurück. Das lässt sich im Menü des Infobereich-Symbols ausschalten: «Autofokus beim Überfahren mit der Maus».</li></ul>
 <h3>Reiter «Städte»</h3><ul>
 <li>▸ neben dem Namen klappt die Stadt aus; [[trash]] löscht die Stadt (unter der Maus [[trash_red]]); ✕ entfernt ein Gebäude.</li>
 <li>Gebäudenamen aus der Liste wählen oder neu eintippen und Enter drücken — seine Zahlen werden gemerkt.</li>
@@ -543,7 +574,15 @@ Nur darüber hinweg bewegt: das Spiel bleibt unberührt. Ohne Klick bekommt das 
 Der Schalter <b>1 Schicht / 3 Schichten</b> zeigt das Personal für eine oder drei Schichten; der Schalter <b>pro Arbeitstag / pro Monat / pro Jahr</b> zeigt Produktion und Bedarf für diesen Zeitraum. Ganz unten: Summen aller Städte und die Einwohnerzahl [[city]].</li>
 <li><b>Extras ▸</b> in einer Stadt: Wohngebäude; Haltestellen — 1–2 pro Einstiegsort (Einwohner pro Ort) und 1–2 pro Betrieb (Anzahl eintragen).</li>
 <li>Felder sind die Gebäude «Kleines / Mittleres / Großes Feld»: Anzahl = Zahl der Felder, die Ernte gilt pro Jahr.
-Die Taste [[fertiliser]] in der Feldzeile schaltet <b>mit / ohne Dünger</b>: mit — größere Ernte und Dünger im Bedarf, ohne — kleinere Ernte, kein Bedarf.</li><li>Das Kartensymbol [[map]] neben dem Papierkorb [[trash]] im Stadtkopf öffnet den Reiter <b>Planner</b> mit genau dieser Stadt.</li></ul>
+Die Taste [[fertiliser]] in der Feldzeile schaltet <b>mit / ohne Dünger</b>: mit — größere Ernte und Dünger im Bedarf, ohne — kleinere Ernte, kein Bedarf.</li><li>Das Kartensymbol [[map]] neben dem Papierkorb [[trash]] im Stadtkopf öffnet den Reiter <b>Planner</b> mit genau dieser Stadt.</li>
+<li>Ein Klick auf <b>Prod. %</b> in der Gebäudezeile öffnet einen Schieberegler (rot bis 100 %); die Zahl lässt sich auch eintippen. Der Prozentwert multipliziert Produktion, Bedarf und das Personal [[edu_c]] M und [[edu_b]] H.</li>
+<li>Hat ein Gebäude mehrere Ressourcen, haben die Spalten «Produktion» und «Bedarf» rechts einen Pfeil ▾: er klappt die übrigen Ressourcen unter der ersten auf, ▴ klappt sie zu.</li>
+<li>Im Modus <b>1 Schicht</b> sind die Felder M und H ebenfalls editierbar: Personal für eine Schicht eintippen, das Programm speichert es für 3 Schichten. Die Spaltenüberschriften zeigen «(1 Schicht)» oder «(3 Schichten)».</li>
+<li>Das Symbol [[off]] im Stadtkopf schaltet die Stadt aus: die Karte wird grau und die Stadt zählt nicht in den Summen unten und im Reiter «Produktion». Erneuter Klick schaltet sie wieder ein.</li>
+<li>Das Symbol [[kids]] (Kinder und Ältere) steht in jeder Stadt zwischen H und «Gesamt» und unten für alle Städte auf einmal. Ist es an, steht daneben die Zahl der Kinder und Älteren (ein Prozentsatz von M + H), dieser Prozentsatz wird dem Bedarf der Einwohner hinzugefügt, und «Gesamt» = M + H + Kinder und Ältere (Haltestellen werden ebenfalls von der größeren Bevölkerung gerechnet).</li></ul>
+<h3>Reiter «Produktion»</h3><ul>
+<li>Für jede Stadt: was ihre Gebäude im gewählten Zeitraum herstellen und brauchen ([[building]] Ressourcensymbol und Menge). Unter der roten Linie — die Summe «Alle Städte».</li>
+<li>Eine mit [[off]] ausgeschaltete Stadt bleibt grau in der Liste, zählt aber nicht in der Summe. Die Zahlen aktualisieren sich bei Änderung von Gebäuden, Prozentwert, Anzahl, Stadtname oder Zeitraum.</li></ul>
 <h3>Reiter «Planner»</h3><ul>
 <li>[[map]] Stadtplaner auf einer Karte von 20 000 × 20 000 m. Die Städteliste ist dieselbe wie im Reiter «Städte» [[city]]; jede Stadt hat ihre eigene Karte.</li>
 <li>[[plate_blue]] <b>Bibliothek</b> rechts: Klick auf einen Block setzt ihn auf die Karte (Stadtzonen, Verkehr, Stromknoten, Straßen, Gleise, Flüsse, Stromnetz, Text). <b>Blöcke</b> links zeigt nur die Blöcke der gewählten Stadt: Klick wählt aus, ▸ öffnet die Einstellungen (Blöcke erscheinen eingeklappt), [[eye]] blendet aus.</li>
@@ -573,7 +612,7 @@ zwei gleiche Namen sind nicht erlaubt.</li>
 <li>Links neben dem Speichern-Knopf steht ein Rechner: beliebige Einwohnerzahl eintragen, darunter erscheint der Bedarf:
 [[eletronics]] Elektronik, [[food]] Brot, [[meat]] Fleisch, [[clothes]] Kleidung, [[alcohol]] Alkohol,
 und [[eletric]] [[water]] [[usagewater]] [[waste_mixed]] [[heat]] Versorgung (sobald eine Rate gesetzt ist). Das ✕ im Ergebnisfenster setzt die Zahl auf null zurück.</li>
-<li><b>?</b> — die Berechnungsformel mit den aktuellen Zahlen. <b>✎</b> — eigene Raten pro 1000 Einwohner (pro Jahr) eintragen; Null — die Ressource wird nicht angezeigt.</li>
+<li><b>?</b> — die Berechnungsformel mit den aktuellen Zahlen. <b>✎</b> — eigene Raten pro 1000 Einwohner (pro Jahr) eintragen; Null — die Ressource wird nicht angezeigt. In diesem Fenster hat jede Ressource eine Spalte <b>Kinder &amp; Ältere, %</b> (standardmäßig 30), unten steht das Symbol [[kids]] mit einem %-Feld: ein Wert für alle Ressourcen und das Wachstum der Bevölkerung.</li>
 <li>Der Schalter <b>pro Arbeitstag / pro Monat / pro Jahr</b> ändert den Zeitraum für den Rechner und die Stadtzeilen.</li></ul>
 """,
 }

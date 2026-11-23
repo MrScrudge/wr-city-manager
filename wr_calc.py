@@ -3,9 +3,8 @@ Tab «Міста»: cities -> objects (buildings) with count, productivity, prod
              per-city extra panel (houses, bus stops, fields). Needs per 1000 residents: in every city row, under the cities and in the calculator."""
 import os, sys, json, math, re, uuid
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
-import wr_paths                                                          # noqa: E402  (where the assets live)
-CM = HERE                                                                # exports and shortcuts go next to the program
+CM = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(CM, 'kit'))
 APP_ID = 'MrScrudge.WRCalculator'          # the same id on the process, its window and the shortcut: one taskbar button
 import zlib
 SINGLE_NAME = 'MrScrudge.WRCityManager.single.%08x' % zlib.crc32(os.path.normcase(HERE).encode('utf-8', 'replace'))   # one running copy per program folder: the 2nd start of the same copy just shows the 1st
@@ -49,7 +48,7 @@ if __name__ == '__main__' and '--make-links' not in sys.argv:          # the gea
 
 import numpy as np                                                       # noqa: E402
 from PIL import Image                                                    # noqa: E402
-import wr_gui as gui                                                               # noqa: E402  (game window texture, resource names)
+import gui                                                               # noqa: E402  (game window texture, resource names)
 import lang                                                              # noqa: E402  (UI languages)
 from lang import tr                                                      # noqa: E402
 
@@ -98,21 +97,20 @@ from PySide6.QtCore import Qt, QTimer, QPoint, QPointF, QRect, QSize, Signal, QE
 from PySide6.QtGui import (QImage, QPixmap, QPainter, QIcon, QFontDatabase, QFont, QCursor, QValidator, QGuiApplication,
                            QColor, QPen, QFontMetrics, QShortcut, QKeySequence, QPolygonF, QRegion)
 from PIL import ImageDraw, ImageFilter
-from PySide6.QtCore import QLocale, QUrl  # noqa: E402
+from PySide6.QtCore import QLocale, QUrl, QObject  # noqa: E402
 from PySide6.QtCore import QPropertyAnimation, QEasingCurve  # noqa: E402
 from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,  # noqa: E402
                                QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QScrollArea, QFrame,
                                QStackedWidget, QDialog, QMessageBox, QSizeGrip, QCompleter, QListWidget,
-                               QListWidgetItem, QToolButton, QToolTip, QGraphicsOpacityEffect)
+                               QListWidgetItem, QToolButton, QToolTip, QGraphicsOpacityEffect, QSlider, QMenu)
 
 DATA = os.path.join(HERE, 'data.json')
 APP_NAME = 'W&R City Manager'                               # the same in every language
 OLD_LINK = 'W&R Калькулятор.lnk'                            # the shortcut name before the rename
 CATALOG_ADD = os.path.join(HERE, 'catalog_add.json')       # buildings handed over from outside: merged into «Мої об'єкти» once
-GAME = wr_paths.game_dir()                                  # the game's icons: unpacked from assets/game_assets.zip once
-ICONS = os.path.join(HERE, 'assets')                        # the program's own icons
-EDITOR = os.path.join(GAME, 'editor')                       # game building icons
-GI = os.path.join(GAME, 'gameicons')                        # game resource icons
+ICONS = os.path.join(CM, 'icons')
+EDITOR = os.path.join(ICONS, 'editor')
+GI = os.path.join(CM, 'kit', 'gameicons')
 INK, RED, MAROON, PAPER = '#2d231e', '#bc0000', '#923c38', '#faf4ea'
 RES_NAME = dict(gui.RES_UA)
 RES_NAME.update({'plants': 'Збіжжя', 'boards': 'Деревина', 'wood': 'Ліс-кругляк', 'gravel': 'Гравій', 'rawgravel': 'Камінь',
@@ -223,6 +221,8 @@ LVIV = [('Танковий завод', 1000, 1000), ('Трамвайний за
         ("В'язниця", 250, 0), ('ТВ Вишка та Телестанція', 100, 220), ('Радіостанція 5х', 550, 550), ('Сто велике 4х', 1000, 0),
         ('Пошта 9х', 500, 0), ('Держбезпека', 0, 120), ('Залізнична буд. кантора', 180, 0), ('Міська Адміністрація', 75, 0),
         ('Парк', 100, 0), ('Суд', 150, 100), ('Асфальт та Бетон', 30, 0), ('Готелі', 250, 0)]
+CITIES0 = [('Тернопіль', 7000), ('Івано-Франківськ', 25000), ('Східниця', 7600), ('Чернівці', 6100), ('Львів', 40000),
+           ('Хмельницький', 6100), ('Рівне', 11000)]
 EXTRA0 = dict(c_house=197, b_house=196, stop_people=1000, enterprises=0)
 
 
@@ -230,9 +230,14 @@ def new_obj(name='', count=1, c=0, b=0, prod=100, production=None, needs=None):
     return dict(id=uuid.uuid4().hex[:8], name=name, count=count, prod=prod, production=production or [], needs=needs or [], c=c, b=b)
 
 
+def staff_n(o):
+    """how many 'whole buildings' of people the row needs: count x productivity (stored С / В are for ONE building at 100 %)"""
+    return max(1, o['count']) * o.get('prod', 100) / 100.0
+
+
 def city_pop(c):
     """population of a city = its Total (С + В for 3 shifts), always computed from the buildings"""
-    return int(round(sum((o['c'] + o['b']) * max(1, o['count']) for o in c['objects'])))
+    return int(round(sum((o['c'] + o['b']) * staff_n(o) for o in c['objects'])))
 
 
 def new_city(name='Нове місто', pop=0):
@@ -240,19 +245,21 @@ def new_city(name='Нове місто', pop=0):
 
 
 def default_data():
-    """a fresh start: one empty city and the starter list of buildings («Мої об'єкти»)"""
+    cities = [new_city(n, p) for n, p in CITIES0]
+    lviv = next(c for c in cities if c['name'] == 'Львів')
     catalog = {}
     for row in LVIV:
         nm, cnt = parse_name(row[0])
         prodlist = [['workers', row[3]]] if len(row) > 3 else []
+        lviv['objects'].append(new_obj(nm, cnt, row[1] / cnt, row[2] / cnt, 100, prodlist))
         catalog[nm] = dict(c=row[1] / cnt, b=row[2] / cnt, production=prodlist, needs=[])
-    return dict(cities=[new_city()], catalog=catalog, rates=[list(r) for r in DEFAULT_RATES],
+    return dict(cities=cities, catalog=catalog, rates=[list(r) for r in DEFAULT_RATES],
                 util_rates=[list(r) for r in DEFAULT_UTIL], res_rows=[],
                 settings=dict(cb_v=2, pinned=True, one_shift=False, tab=0, geom=None, collapsed=False))
 
 
 def backup_data():
-    """a copy of data.json once a day in backups; the last 14 days are kept"""
+    """a copy of data.json once a day in calc\\backups; the last 14 days are kept"""
     try:
         import time, shutil
         if not os.path.exists(DATA):
@@ -278,8 +285,10 @@ def load():
             d['rates'] = [list(r) for r in d['rates']]
         else:
             d['rates'] = [list(r) for r in DEFAULT_RATES]
-        if st0.get('tab_v') != 2:                               # old tabs: 0 cities, 1 per 1000, 2 my buildings
+        if st0.get('tab_v') not in (2, 3):                      # old tabs: 0 cities, 1 per 1000, 2 my buildings
             st0['tab'] = {0: 0, 1: 0, 2: 1}.get(st0.get('tab', 0), 0); st0['tab_v'] = 2
+        if st0.get('tab_v') == 2:                               # Production came before the planner: 2 production, 3 planner
+            st0['tab'] = {2: 3, 3: 2}.get(st0.get('tab', 0), st0.get('tab', 0)); st0['tab_v'] = 3
         if st0.get('cb_v') != 2:                                # С/В were row totals: make them per building
             for c in d.get('cities', []):
                 for o in c['objects']:
@@ -363,6 +372,7 @@ QToolButton#map:hover {{ background: rgba(146, 60, 56, 30); border-color: #c8b39
 QFrame#toast {{ background: rgba(255, 250, 240, 235); border: 2px solid {MAROON}; border-radius: 6px; }}
 QFrame#toast[bad="true"] {{ border-color: #d01010; }}
 QFrame#card {{ background: rgba(255, 250, 240, 120); border: 1px solid #c8b39a; border-radius: 6px; }}
+QFrame#card[off="true"] {{ background: rgba(120, 120, 120, 120); border: 1px solid #8a8a8a; }}
 QFrame#side {{ background: rgba(240, 228, 210, 200); border: 1px solid #c8b39a; border-radius: 6px; }}
 QFrame#rule {{ background: {RED}; max-height: 2px; min-height: 2px; }}
 QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; border: none; }}
@@ -497,13 +507,17 @@ EDU_C = os.path.join(EDITOR, 'tool_worker_relocate.png')             # game icon
 EDU_B = os.path.join(EDITOR, 'tool_worker_relocate_educated.png')    # game icon: worker with a graduation cap (higher)
 TOT_ICON = os.path.join(GI, 'ui', 'residential_workers.png')
 CITY_ICON = os.path.join(GI, 'ui', 'city.png')
-TRASH, TRASH_RED = os.path.join(ICONS, 'trash.png'), os.path.join(ICONS, 'trash_red.png')
+TRASH, TRASH_RED = os.path.join(HERE, 'trash.png'), os.path.join(HERE, 'trash_red.png')
 CAPTURES = os.path.join(HERE, 'captures')                                # every pipette shot is kept here for tuning
-BUILDING_ICON = os.path.join(ICONS, 'building.png')                     # one icon for every building (user's wish)
-PIPETTE_ICON = os.path.join(ICONS, 'pipette.png')
-SAVE_ICON, SAVE_ICON_HOT = os.path.join(ICONS, 'save.png'), os.path.join(ICONS, 'save_hot.png')
-MAP_ICON, MAP_ICON_HOT = os.path.join(GAME, 'ui', 'map_icon.png'), os.path.join(GAME, 'ui', 'map_hot.png')   # map_hot.png is optional: without it the hover look is a red tint
-CALC_ICON = os.path.join(ICONS, 'calc.png')
+BUILDING_ICON = os.path.join(HERE, 'building.png')                     # one icon for every building (user's wish)
+PIPETTE_ICON = os.path.join(HERE, 'pipette.png')
+SAVE_ICON, SAVE_ICON_HOT = os.path.join(HERE, 'save.png'), os.path.join(HERE, 'save_hot.png')
+KIDS_ICON = os.path.join(HERE, 'kids_icon.png')                          # elderly + baby + child: adds them to what the residents need
+KIDS_ICON_OFF = os.path.join(HERE, 'kids_icon_off.png')                  # the same tile with faint figures: the icon is off
+KIDS_DEFAULT = 30                                                       # % added for children and elderly (per resource, in the rates dialog)
+OFF_ICON = os.path.join(HERE, 'status_notok.png')                        # a city switched off: grey, not in the totals
+MAP_ICON, MAP_ICON_HOT = os.path.join(HERE, 'map_icon.png'), os.path.join(HERE, 'map_hot.png')   # map_hot.png is optional: without it the hover look is a red tint
+CALC_ICON = os.path.join(HERE, 'calc.png')
 HOTKEY_ID, HOTKEY_TEXT = 0x5752, 'Ctrl+Shift+K'                        # show / hide the calculator from anywhere, also inside the game
 OWN_ICONS = os.path.join(HERE, 'icons_own')                             # the user's own building icons (48x48 PNG)
 UA_ABC = 'абвгґдеєжзиіїйклмнопрстуфхцчшщьюя'
@@ -543,12 +557,97 @@ def fert_icon(on):
 
 def show_res(btn, items, k, period):
     """resource button: first resource with its icon and amount, the rest in the tooltip"""
+    btn._all = (items, k, period)
+    ar = getattr(btn, '_arrow', None)
+    if ar is not None:
+        ar.setEnabled(len(items) > 1)                         # the arrow lists every resource: only useful with several
     if not items:
-        btn.setText('—'); btn.setIcon(QIcon()); btn.setToolTip(tr('Натисни, щоб вказати')); return
+        btn.setText('—'); btn.setIcon(QIcon()); btn.setToolTip(tr('Натисни, щоб вказати'))
+        if hasattr(btn, '_ex'):
+            sync_res_cell(btn)
+        return
     r, a = items[0]; p = res_icon(r)
     btn.setIcon(QIcon(pix(p, 20)) if p else QIcon())
     btn.setText(fmt(a * k) + (f'  +{len(items) - 1}' if len(items) > 1 else ''))
     btn.setToolTip('\n'.join(f"{RN(r_)}: {fmt(a_ * k)} {tr(PERIOD_UNIT[period])}" for r_, a_ in items))
+    if hasattr(btn, '_ex'):
+        sync_res_cell(btn)
+
+
+def res_cell(btn):
+    """the resource button plus a small ▾ at its right edge: it opens the other resources as more buttons under the first"""
+    w = QWidget(); v = QVBoxLayout(w); v.setContentsMargins(0, 0, 0, 0); v.setSpacing(2)
+    top = QHBoxLayout(); top.setContentsMargins(0, 0, 0, 0); top.setSpacing(2)
+    top.addWidget(btn, 1)
+    ar = QToolButton(); ar.setText('▾'); ar.setFixedWidth(22); ar.setCursor(Qt.PointingHandCursor); ar.setToolTip(tr('Усі ресурси'))
+    ar.setEnabled(False); top.addWidget(ar); v.addLayout(top)
+    ex = QWidget(); ev = QVBoxLayout(ex); ev.setContentsMargins(0, 0, 24, 0); ev.setSpacing(2)   # as wide as the first button
+    ex.hide(); v.addWidget(ex)
+    btn._arrow, btn._ex, btn._ev, btn._open, btn._extra = ar, ex, ev, False, []
+    ar.clicked.connect(lambda: (setattr(btn, '_open', not btn._open), sync_res_cell(btn)))
+    return w
+
+
+def sync_res_cell(btn):
+    items, k, period = getattr(btn, '_all', ([], 1, 'year'))
+    if len(items) <= 1:
+        btn._open = False
+    rest = items[1:] if btn._open else []
+    while len(btn._extra) > len(rest):
+        b = btn._extra.pop(); btn._ev.removeWidget(b); b.hide(); b.deleteLater()
+    while len(btn._extra) < len(rest):
+        b = QPushButton(); b.setObjectName('res'); b.clicked.connect(btn.click); btn._ev.addWidget(b); btn._extra.append(b)
+    for b, (r_, a_) in zip(btn._extra, rest):
+        p = res_icon(r_)
+        b.setIcon(QIcon(pix(p, 20)) if p else QIcon()); b.setText(fmt(a_ * k))
+        b.setToolTip(f"{RN(r_)}: {fmt(a_ * k)} {tr(PERIOD_UNIT[period])}")
+    btn._ex.setVisible(bool(rest)); btn._arrow.setText('▴' if rest else '▾')
+
+
+class ProdPopup(QFrame):
+    """slider under the «Prod. %» field: drag to change the productivity (the number can still be typed)"""
+    def __init__(self, spin_):
+        super().__init__(spin_.window(), Qt.Popup)
+        self.sp = spin_
+        self.setStyleSheet(f'ProdPopup {{ background: {PAPER}; border: 1px solid #a08c78; }}')
+        h = QHBoxLayout(self); h.setContentsMargins(10, 8, 10, 8); h.setSpacing(8)
+        self.sl = QSlider(Qt.Horizontal); self.sl.setRange(0, 200); self.sl.setFixedWidth(240)
+        self.sl.setValue(min(200, spin_.value()))
+        self.sl.setStyleSheet(
+            'QSlider::groove:horizontal { height: 6px; border-radius: 3px; background: qlineargradient(x1:0, y1:0, x2:1, y2:0, '
+            f'stop:0 {RED}, stop:0.5 {RED}, stop:0.501 #cdbfae, stop:1 #cdbfae); }}'
+            f'QSlider::handle:horizontal {{ background: {PAPER}; border: 2px solid {MAROON}; width: 12px; margin: -6px 0; border-radius: 8px; }}')
+        self.num = spin(500, 0, spin_.value(), 66); self.num.setSuffix(' %')
+        h.addWidget(self.sl); h.addWidget(self.num)
+        self.sl.valueChanged.connect(self.from_slider)
+        self.num.valueChanged.connect(self.from_num)
+
+    def from_slider(self, v):
+        self.num.blockSignals(True); self.num.setValue(v); self.num.blockSignals(False)
+        self.sp.setValue(v)
+
+    def from_num(self, v):
+        self.sl.blockSignals(True); self.sl.setValue(min(200, v)); self.sl.blockSignals(False)
+        self.sp.setValue(v)
+
+
+class SliderOpener(QObject):
+    """a click on the spin box opens the slider under it"""
+    def __init__(self, spin_):
+        super().__init__(spin_); self.sp = spin_
+        spin_.installEventFilter(self); spin_.lineEdit().installEventFilter(self)
+
+    def eventFilter(self, o, ev):
+        if ev.type() == QEvent.MouseButtonPress and ev.button() == Qt.LeftButton:
+            QTimer.singleShot(0, self.open)
+        return False
+
+    def open(self):
+        if getattr(self, 'pop', None) is not None and self.pop.isVisible():
+            return
+        self.pop = ProdPopup(self.sp)
+        self.pop.move(self.sp.mapToGlobal(QPoint(0, self.sp.height() + 2))); self.pop.show()
+        self.pop.num.setFocus(); self.pop.num.selectAll()
 
 
 def obj_icon(entry):
@@ -628,11 +727,13 @@ class DelButton(QToolButton):
         super().leaveEvent(e)
 
 
+PACK_DIR = os.path.join(ICONS, 'Ресурси для обєктів')               # the user's pack: the only resources to offer
+
+
 def pack_keys():
-    """the resources the program offers (assets/resource_pack.json); their icons come from the game icons"""
     try:
-        return json.load(open(os.path.join(HERE, 'assets', 'resource_pack.json'), encoding='utf-8')) or None
-    except (OSError, ValueError):
+        return [f[:-4] for f in os.listdir(PACK_DIR) if f.endswith('.png')] or None
+    except OSError:
         return None
 
 
@@ -658,23 +759,35 @@ def icon_label(path, h, tip=''):
 
 class Stats(QWidget):
     """[icon] С 21 790   [icon] В 6 245   [icon] Разом: 28 035"""
-    def __init__(self, h=22, big=True):
+    def __init__(self, h=22, big=True, kids_tip=None):
         super().__init__()
         hl = QHBoxLayout(self); hl.setContentsMargins(0, 0, 0, 0); hl.setSpacing(4)
-        self.v = []
-        for path, letter, tip in ((EDU_C, tr('С'), tr('Середня освіта')), (EDU_B, tr('В'), tr('Вища освіта')),
-                                  (TOT_ICON, tr('Разом:'), tr('Разом'))):
+        self.v = []; self.kids = self.kids_lbl = None
+        for i, (path, letter, tip) in enumerate(((EDU_C, tr('С'), tr('Середня освіта')), (EDU_B, tr('В'), tr('Вища освіта')),
+                                                 (TOT_ICON, tr('Разом:'), tr('Разом')))):
+            if i == 2 and kids_tip:                                  # children and elderly: the icon and how many they are
+                self.kids = kids_button(kids_tip, h); hl.addWidget(self.kids)
+                self.kids_lbl = QLabel(); self.kids_lbl.setObjectName('big' if big else ''); self.kids_lbl.setToolTip(tr('Діти й літні'))
+                if not big:
+                    self.kids_lbl.setStyleSheet('font-weight: bold;')
+                    f2 = QFont(self.kids_lbl.font()); f2.setBold(True)
+                    self.kids_lbl.setMinimumWidth(QFontMetrics(f2).horizontalAdvance('888 888') + 4)
+                hl.addWidget(self.kids_lbl); hl.addSpacing(10)
             hl.addWidget(icon_label(path, h, tip))
             l = QLabel(); l.setObjectName('big' if big else ''); l.setToolTip(tip)
             if not big:
                 l.setStyleSheet('font-weight: bold;')
+                f = QFont(l.font()); f.setBold(True)                 # fixed width of every value: the icons after it stand in one column in all cities
+                l.setMinimumWidth(QFontMetrics(f).horizontalAdvance(f"{letter} {'8 888 888' if i == 2 else '888 888'}") + 4)
             hl.addWidget(l); hl.addSpacing(10)
             self.v.append((letter, l))
         self.sfx = QLabel(); self.sfx.setObjectName('hint'); hl.addWidget(self.sfx)
 
-    def set(self, c, b, one):
-        k = 3 if one else 1
-        for (letter, l), val in zip(self.v, (c, b, c + b)):
+    def set(self, c, b, one, total=None, kids=None):
+        k = 3 if one else 1                                          # total: the population with children and elderly, if they are counted
+        if self.kids_lbl is not None:                                # kids: how many children and elderly (None - the icon is off)
+            self.kids_lbl.setText('' if kids is None else fmt(kids / k))
+        for (letter, l), val in zip(self.v, (c, b, c + b if total is None else total)):
             l.setText(f'{letter} {fmt(val / k)}')
         self.sfx.setText(tr('(1 зміна)') if one else '')
 
@@ -737,15 +850,19 @@ class ResStrip(QWidget):
         for r, v in rates:
             self.hl.addWidget(icon_label(res_icon(r), self.h, RN(r)))
             l = QLabel(); l.setToolTip(RN(r)); l.setStyleSheet('font-weight: bold;'); self.hl.addWidget(l); self.hl.addSpacing(8)
-            self.cells.append((v, l))
+            self.cells.append((r, v, l))
 
-    def set_pop(self, pop):
+    def set_pops(self, pairs):
+        """pairs: [(residents, children and elderly counted?)], one per city"""
         rates = self.rates()
         if rates != self.sig:
             self.sig = rates; self.rebuild(rates)
         div = self.app.period_div()
-        for v, l in self.cells:
-            l.setText(fmt(pop / 1000.0 * v / div))
+        for r, v, l in self.cells:
+            l.setText(fmt(sum(p / 1000.0 * v * self.app.kids_k(r, k) for p, k in pairs) / div))
+
+    def set_pop(self, pop, kids=False):
+        self.set_pops([(pop, kids)])
 
 
 class RatesDialog(QDialog):
@@ -759,32 +876,50 @@ class RatesDialog(QDialog):
         h = QLabel(tr('Норми на 1000 жителів (на рік)')); h.setObjectName('h1'); v.addWidget(h)
         note = QLabel(tr('Впиши свої числа: калькулятор і міста порахують за ними. Нуль — ресурс не показується.'))
         note.setObjectName('hint'); note.setWordWrap(True); v.addWidget(note)
-        self.sp = {'rates': [], 'util_rates': []}
+        note2 = QLabel(tr('Колонка «Діти й літні, %» додається до норми міста, де ввімкнена іконка дітей і літніх.'))
+        note2.setObjectName('hint'); note2.setWordWrap(True); v.addWidget(note2)
+        self.sp = {'rates': [], 'util_rates': []}; self.pc = {'rates': [], 'util_rates': []}
+        kp = app.data.get('kids_pct', {})
         for key, title in (('rates', tr('Продукти та товари')), ('util_rates', tr('Комунальні'))):
             l = QLabel(title); l.setObjectName('h1'); v.addWidget(l)
             g = QGridLayout(); g.setHorizontalSpacing(8); g.setVerticalSpacing(3)
-            for i, (r, val) in enumerate(app.data[key]):
+            h2 = QLabel(tr('Діти й літні, %')); h2.setObjectName('hint'); h2.setAlignment(Qt.AlignRight); g.addWidget(h2, 0, 3)
+            for i, (r, val) in enumerate(app.data[key], 1):
                 g.addWidget(icon_label(res_icon(r), 22), i, 0); g.addWidget(QLabel(RN(r)), i, 1)
                 s_ = spin(10 ** 7, 2, float(val), 100); g.addWidget(s_, i, 2); self.sp[key].append(s_)
+                p_ = spin(1000, 0, int(kp.get(r, KIDS_DEFAULT)), 70); p_.setSuffix(' %'); g.addWidget(p_, i, 3); self.pc[key].append(p_)
             g.setColumnStretch(1, 1); v.addLayout(g)
         hb = QHBoxLayout()
         rb = QPushButton(tr('Типові норми')); rb.setObjectName('ghost'); rb.clicked.connect(self.defaults); hb.addWidget(rb)
+        hb.addSpacing(16)
+        ki = icon_label(KIDS_ICON, 24, tr('Діти й літні, %')); hb.addWidget(ki)
+        every = [p_.value() for key in self.pc for p_ in self.pc[key]]
+        self.kp = spin(1000, 0, app.data.get('kids_pop_pct', every[0] if every and len(set(every)) == 1 else KIDS_DEFAULT), 76); self.kp.setSuffix(' %')
+        self.kp.setToolTip(tr('Діти й літні, %: на стільки зростає населення, і це значення для всіх ресурсів (окремо кожен можна змінити в колонці)'))
+        self.kp.valueChanged.connect(self.set_all_pct); hb.addWidget(self.kp)
         hb.addStretch()
         ok = QPushButton(tr('Готово')); ok.clicked.connect(self.accept); hb.addWidget(ok)
         v.addLayout(hb)
-        self.resize(420, 120 + 30 * (len(self.sp['rates']) + len(self.sp['util_rates'])))
+        self.resize(480, 190 + 30 * (len(self.sp['rates']) + len(self.sp['util_rates'])))
+
+    def set_all_pct(self, v):
+        for key in self.pc:
+            for p_ in self.pc[key]:
+                p_.setValue(v)
 
     def defaults(self):
         for key, dflt in (('rates', DEFAULT_RATES), ('util_rates', DEFAULT_UTIL)):
-            for s_, (_, val) in zip(self.sp[key], dflt):
-                s_.setValue(float(val))
+            for s_, p_, (_, val) in zip(self.sp[key], self.pc[key], dflt):
+                s_.setValue(float(val)); p_.setValue(KIDS_DEFAULT)
+        self.kp.blockSignals(True); self.kp.setValue(KIDS_DEFAULT); self.kp.blockSignals(False)
 
     def accept(self):
         d = self.app.data
         for key in ('rates', 'util_rates'):
-            for s_, item in zip(self.sp[key], d[key]):
-                item[1] = s_.value()
+            for s_, p_, item in zip(self.sp[key], self.pc[key], d[key]):
+                item[1] = s_.value(); d.setdefault('kids_pct', {})[item[0]] = p_.value()
         d['settings']['rates_custom'] = True
+        d['kids_pop_pct'] = self.kp.value()
         super().accept(); self.app.rates_changed()
 
 
@@ -819,7 +954,7 @@ class PopCalc(QWidget):
 
     def rates_all(self):
         d = self.app.data
-        return [(r, v) for r, v in list(d['rates']) + list(d['util_rates'])]
+        return [(r, v * self.app.kids_k(r, self.app.kids_all())) for r, v in list(d['rates']) + list(d['util_rates'])]
 
     def refresh(self):
         p = self.sp.value(); div = self.app.period_div()
@@ -1293,7 +1428,7 @@ def help_with_icons():
     hd = os.path.join(HERE, 'help')
     icons = {n: os.path.join(hd, n + '.png') for n in ('minus', 'pin_on', 'pin_off', 'close', 'help')}
     icons.update(trash=TRASH, trash_red=TRASH_RED, pipette=PIPETTE_ICON, building=BUILDING_ICON, city=CITY_ICON,
-                 edu_c=EDU_C, edu_b=EDU_B, total=TOT_ICON, save=SAVE_ICON)
+                 edu_c=EDU_C, edu_b=EDU_B, total=TOT_ICON, save=SAVE_ICON, kids=KIDS_ICON, off=OFF_ICON)
     chips = {'minus', 'pin_on', 'pin_off', 'close', 'help'}
     icons.update(planner_help_icons())
 
@@ -1396,7 +1531,7 @@ class ObjRow:
         self.name.setMinimumWidth(190); self._names_v = None; self.fill_names()
         self.name.completer().setCompletionMode(QCompleter.PopupCompletion); self.name.completer().setFilterMode(Qt.MatchContains)
         self.count = spin(9999, 0, obj['count'], 52)
-        self.prod = spin(500, 0, obj['prod'], 58); self.prod.setSuffix(' %')
+        self.prod = spin(500, 0, obj['prod'], 58); self.prod.setSuffix(' %'); SliderOpener(self.prod)
         self.production = QPushButton(); self.production.setObjectName('res')
         self.needs = QPushButton(); self.needs.setObjectName('res')
         self.pip = QToolButton(); self.pip.setIcon(QIcon(pix(PIPETTE_ICON, 24))); self.pip.setIconSize(QSize(24, 24))
@@ -1405,7 +1540,11 @@ class ObjRow:
         self.c = spin(10 ** 7, 0, obj['c'], 74); self.b = spin(10 ** 7, 0, obj['b'], 74)
         self.tot = QLabel(); self.tot.setAlignment(Qt.AlignRight | Qt.AlignVCenter); self.tot.setMinimumWidth(60); self.tot.setObjectName('big')
         self.rm = DelButton(tr("Прибрати об'єкт"))
-        self.widgets = [self.icon, self.name, self.count, self.prod, self.production, self.needs, self.pip, self.c, self.b, self.tot, self.rm]
+        self.icon.setAlignment(Qt.AlignCenter)
+        for w_ in (self.icon, self.tot, self.rm, self.pip):
+            w_.setMinimumHeight(30)                                  # same height as the fields, so that rows stay level when a cell grows
+        self.widgets = [self.icon, self.name, self.count, self.prod, res_cell(self.production), res_cell(self.needs), self.pip,
+                        self.c, self.b, self.tot, self.rm]
         self.name.lineEdit().editingFinished.connect(lambda: self.on_name(self.name.currentText()))
         self.name.activated.connect(lambda i: self.on_key(self.name.itemData(i) or self.name.currentText()))
         self.count.valueChanged.connect(self.on_count)
@@ -1445,14 +1584,12 @@ class ObjRow:
         prod, need = eff_lists(o)
         show_res(self.production, prod, k, self.card.app.period()); show_res(self.needs, need, k, self.card.app.period())
         set_pip(self.pip, self.needs, o.get('fert', True) if is_field(o) else None)
-        n = max(1, o['count'])
+        n = staff_n(o)
         for s_, key in ((self.c, 'c'), (self.b, 'b')):
             tot = o[key] * n
             s_.blockSignals(True)
-            if one:
-                s_.setReadOnly(True); s_.setValue(int(round(tot / 3)))
-            else:
-                s_.setReadOnly(False); s_.setValue(int(round(tot)))
+            s_.setReadOnly(False)
+            s_.setValue(int(round(tot / 3 if one else tot)))
             s_.blockSignals(False)
         t = (o['c'] + o['b']) * n
         self.tot.setText(fmt(t / 3 if one else t))
@@ -1508,9 +1645,11 @@ class ObjRow:
         self.o['prod'] = v; self.refresh(); self.card.changed()
 
     def on_cb(self, key, v):
-        if self.card.app.one_shift():
-            return
-        self.o[key] = v / max(1, self.o['count'])                       # typed as the row total
+        n = staff_n(self.o)
+        if n <= 0:                                                      # productivity 0 %: nobody is needed, nothing to type
+            self.refresh(); return
+        k = 3 if self.card.app.one_shift() else 1                       # 1 shift: typed per shift, kept for 3 shifts
+        self.o[key] = v * k / n                                         # typed as the row total (x count x productivity)
         self.remember(); self.refresh(); self.card.changed()
 
     def remember(self):
@@ -1528,6 +1667,119 @@ class ObjRow:
 
 
 
+_TILE = []
+
+
+def tile_ratio():
+    """how much of the S / H / Total icon files is the visible tile (they have transparent margins); the kids tile is cut to its edges"""
+    if not _TILE:
+        r = 0.83
+        try:
+            a = Image.open(TOT_ICON).convert('RGBA').getchannel('A').point(lambda v: 255 if v > 60 else 0)
+            bb = a.getbbox()
+            if bb:
+                r = (bb[3] - bb[1]) / float(a.height)
+        except Exception:
+            pass
+        _TILE.append(min(1.0, max(0.5, r)))
+    return _TILE[0]
+
+
+def kids_button(tip, h=20):
+    """the small tile like the С / В / Разом icons (elderly, baby and child on top of each other): faint when off, black when on"""
+    b = QToolButton(); b.setCheckable(True); b.setCursor(Qt.PointingHandCursor); b.setToolTip(tip)
+    eh = max(8, round(h * tile_ratio()))                        # the same visible size as the neighbouring icons
+    full = pix(KIDS_ICON, eh)
+    b.setFixedSize(h, h)
+    if full.isNull():
+        b.setText('👶')                                              # kids_icon.png is missing next to wr_calc.py
+    else:
+        dim = pix(KIDS_ICON_OFF, eh)
+        if dim.isNull():                                             # no kids_icon_off.png: fade the whole tile instead
+            dim = QPixmap(full.size()); dim.fill(Qt.transparent)
+            pp = QPainter(dim); pp.setOpacity(0.35); pp.drawPixmap(0, 0, full); pp.end()
+        ic = QIcon(); ic.addPixmap(dim, QIcon.Normal, QIcon.Off); ic.addPixmap(full, QIcon.Normal, QIcon.On)
+        b.setIcon(ic); b.setIconSize(full.size())
+    b.setStyleSheet('QToolButton { border: none; background: transparent; padding: 0px; }')
+    return b
+
+
+def city_res(c, div):
+    """what the buildings of a city make and need: {resource: amount} for the shown period (count x productivity x per-building value)"""
+    prod, need = {}, {}
+    for o in c['objects']:
+        f = o['prod'] / 100.0 * max(1, o['count']) / div
+        p, n = eff_lists(o)
+        for r, a in p:
+            if r:
+                prod[r] = prod.get(r, 0) + a * f
+        for r, a in n:
+            if r:
+                need[r] = need.get(r, 0) + a * f
+    return prod, need
+
+
+class ProductionTab(QWidget):
+    """every city: what its buildings make and need (shown period); under the line: all cities together"""
+    PER_ROW = 8
+
+    def __init__(self, app):
+        super().__init__(); self.app = app
+        v = QVBoxLayout(self); v.setContentsMargins(0, 0, 0, 0)
+        top = QHBoxLayout(); self.period = PeriodSwitch(app); top.addWidget(self.period); top.addStretch(); v.addLayout(top)
+        self.sc = QScrollArea(); self.sc.setWidgetResizable(True)
+        self.inner = QWidget(); self.box = QVBoxLayout(self.inner); self.box.setContentsMargins(0, 4, 6, 4); self.box.addStretch()
+        self.sc.setWidget(self.inner); v.addWidget(self.sc, 1)
+        rule = QFrame(); rule.setObjectName('rule'); v.addWidget(rule)
+        self.total = QFrame(); self.total.setObjectName('card'); self.tg = QGridLayout(self.total); self.tg.setContentsMargins(8, 6, 8, 6)
+        v.addWidget(self.total)
+        self.refresh()
+
+    @staticmethod
+    def clear(lay):
+        while lay.count():
+            it = lay.takeAt(0)
+            if it.widget() is not None:
+                it.widget().hide(); it.widget().deleteLater()
+
+    def fill(self, g, title, prod, need):
+        t = QLabel(title); t.setStyleSheet('font-weight: bold; font-size: 14px;'); g.addWidget(t, 0, 0, 1, 2)
+        r = 1
+        for lab, data in ((tr('Виробництво'), prod), (tr('Потреби'), need)):
+            l = QLabel(lab + ':'); l.setObjectName('red'); g.addWidget(l, r, 0, Qt.AlignTop)
+            flow = QWidget(); fg = QGridLayout(flow); fg.setContentsMargins(0, 0, 0, 0); fg.setHorizontalSpacing(5); fg.setVerticalSpacing(3)
+            items = [(k, x) for k, x in data.items() if x]
+            if not items:
+                fg.addWidget(QLabel('—'), 0, 0)
+            for i, (k, x) in enumerate(items):
+                rr, cc = divmod(i, self.PER_ROW)
+                fg.addWidget(icon_label(res_icon(k), 22, RN(k)), rr, cc * 2)
+                lb = QLabel(fmt(x)); lb.setStyleSheet('font-weight: bold; padding-right: 14px;'); lb.setToolTip(RN(k)); fg.addWidget(lb, rr, cc * 2 + 1)
+            fg.setColumnStretch(self.PER_ROW * 2, 1)
+            g.addWidget(flow, r, 1); r += 1
+        g.setColumnStretch(1, 1)
+
+    def refresh(self):
+        div = self.app.period_div()
+        while self.box.count() > 1:                              # the last item is the stretch
+            it = self.box.takeAt(0)
+            if it.widget() is not None:
+                it.widget().hide(); it.widget().deleteLater()
+        TP, TN = {}, {}
+        for i, c in enumerate(self.app.data['cities']):
+            p, n = city_res(c, div)
+            if not c.get('off'):
+                for src, dst in ((p, TP), (n, TN)):
+                    for k, x in src.items():
+                        dst[k] = dst.get(k, 0) + x
+            card = QFrame(); card.setObjectName('card'); g = QGridLayout(card); g.setContentsMargins(8, 6, 8, 6)
+            if c.get('off'):
+                card.setProperty('off', True)
+            self.fill(g, c['name'] or '—', p, n)
+            self.box.insertWidget(i, card)
+        self.clear(self.tg)
+        self.fill(self.tg, tr('Усі міста'), TP, TN)
+
 class CityCard(QFrame):
     def __init__(self, app, city):
         super().__init__(); self.setObjectName('card')
@@ -1536,12 +1788,22 @@ class CityCard(QFrame):
         v = QVBoxLayout(self); v.setContentsMargins(8, 6, 8, 8); v.setSpacing(4)
         # header
         hd = QHBoxLayout()
+        self.off_btn = QToolButton(); self.off_btn.setCheckable(True); self.off_btn.setCursor(Qt.PointingHandCursor)
+        self.off_btn.setIcon(QIcon(pix(OFF_ICON, 22))); self.off_btn.setIconSize(QSize(22, 22))
+        self.off_btn.setToolTip(tr('Вимкнути місто: сіре, не входить у загальні підрахунки'))
+        self.off_btn.setStyleSheet('QToolButton { border: none; background: transparent; padding: 2px; }'
+                                   'QToolButton:hover, QToolButton:checked { background: rgba(180, 40, 40, 40); border-radius: 5px; }')
+        self.off_btn.setChecked(bool(city.get('off'))); self.off_btn.clicked.connect(self.toggle_off); hd.addWidget(self.off_btn)
+        hd.addSpacing(4)                                         # the off switch is the first thing of the row
         self.tog = QToolButton(); self.tog.clicked.connect(self.toggle); hd.addWidget(self.tog)
         hd.addWidget(icon_label(CITY_ICON, 26))
         self.name = QLineEdit(city['name']); self.name.setFixedWidth(180); self.name.setStyleSheet('font-weight: bold; font-size: 14px;')
         self.name.textChanged.connect(self.on_name); hd.addWidget(self.name)
         hd.addSpacing(14)
-        self.stats = Stats(20, big=False); hd.addWidget(self.stats)
+        self.stats = Stats(20, big=False, kids_tip=tr('Діти й літні: додати до потреб населення цього міста (відсоток — у «Норми на 1000 жителів»)'))
+        hd.addWidget(self.stats)
+        self.kids = self.stats.kids
+        self.kids.setChecked(bool(city.get('kids'))); self.kids.clicked.connect(self.toggle_kids)
         hd.addSpacing(18)
         self.strip = ResStrip(app, 20); hd.addWidget(self.strip)
         hd.addStretch(1)
@@ -1553,19 +1815,23 @@ class CityCard(QFrame):
         self.body = QWidget(); bl = QHBoxLayout(self.body); bl.setContentsMargins(0, 4, 0, 0)
         left = QVBoxLayout(); bl.addLayout(left, 1)
         tb = QHBoxLayout()
-        add = QPushButton(tr("+ Додати об'єкт")); add.setObjectName('ghost'); add.clicked.connect(self.add_obj); tb.addWidget(add)
         tb.addStretch(); left.addLayout(tb)
         self.grid = QGridLayout(); self.grid.setHorizontalSpacing(6); self.grid.setVerticalSpacing(3)
         self.grid.setColumnStretch(1, 1)                      # spare width goes to the building name, not between columns
+        self.head_cb = {}
         for i, t in enumerate(ObjRow.cols()):
             box = QWidget(); hl = QHBoxLayout(box); hl.setContentsMargins(0, 0, 0, 0); hl.setSpacing(3)
             if i in (7, 8):
                 hl.addWidget(icon_label(EDU_C if i == 7 else EDU_B, 18))
             l = QLabel(t); l.setObjectName('h1' if t else ''); l.setStyleSheet('font-size: 12px;'); hl.addWidget(l); hl.addStretch()
+            if i in (7, 8):
+                self.head_cb[i] = l
             self.grid.addWidget(box, 0, i)
         left.addLayout(self.grid)
         rule = QFrame(); rule.setObjectName('rule'); left.addWidget(rule)
         fb = QHBoxLayout()
+        add2 = QPushButton(tr("+ Додати об'єкт")); add2.setObjectName('ghost')
+        add2.setCursor(Qt.PointingHandCursor); add2.clicked.connect(self.add_obj); fb.addWidget(add2, 0, Qt.AlignTop)
         fb.addStretch()
         fg = QGridLayout(); fg.setHorizontalSpacing(14); fg.setVerticalSpacing(2)   # two footer lines: 1 shift and 3 shifts
         self.foot = []
@@ -1588,7 +1854,7 @@ class CityCard(QFrame):
         v.addWidget(self.body)
         for o in city['objects']:
             self._add_row(o)
-        self.apply_open(); self.update_sums()
+        self.apply_open(); self.sync_heads(); self.update_sums(); self.show_off()
 
     # ----- side panel
     def build_side(self):
@@ -1632,7 +1898,7 @@ class CityCard(QFrame):
         row = ObjRow(self, o); self.rows.append(row)
         r = len(self.rows)
         for i, w in enumerate(row.widgets):
-            self.grid.addWidget(w, r, i)
+            self.grid.addWidget(w, r, i, Qt.AlignTop)
 
     def add_obj(self):
         o = new_obj(); self.city['objects'].append(o); self._add_row(o); self.changed()
@@ -1657,9 +1923,15 @@ class CityCard(QFrame):
                 self.grid.removeWidget(w)
         for i, rw in enumerate(self.rows, 1):              # row 0 is the header
             for j, w in enumerate(rw.widgets):
-                self.grid.addWidget(w, i, j)
+                self.grid.addWidget(w, i, j, Qt.AlignTop)
+
+    def sync_heads(self):
+        one = self.app.one_shift()
+        self.head_cb[7].setText(tr('С (1 зміна)') if one else tr('С (3 зміни)'))
+        self.head_cb[8].setText(tr('В (1 зміна)') if one else tr('В (3 зміни)'))
 
     def refresh_rows(self):
+        self.sync_heads()
         for r in self.rows:
             r.refresh()
         self.update_sums()
@@ -1683,19 +1955,33 @@ class CityCard(QFrame):
 
     def totals(self):
         objs = self.city['objects']
-        return (sum(o['c'] * max(1, o['count']) for o in objs), sum(o['b'] * max(1, o['count']) for o in objs))
+        return (sum(o['c'] * staff_n(o) for o in objs), sum(o['b'] * staff_n(o) for o in objs))
+
+    def toggle_kids(self):
+        self.city['kids'] = self.kids.isChecked(); self.app.rates_changed()
+
+    def sync_kids(self):
+        self.kids.blockSignals(True); self.kids.setChecked(bool(self.city.get('kids'))); self.kids.blockSignals(False)
+
+    def show_off(self):
+        self.setProperty('off', bool(self.city.get('off')))
+        self.style().unpolish(self); self.style().polish(self)
+
+    def toggle_off(self):
+        self.city['off'] = self.off_btn.isChecked(); self.show_off(); self.app.cities_changed()
 
     def update_sums(self):
         c, b = self.totals()
-        self.stats.set(c, b, self.app.one_shift())
-        self.strip.set_pop(city_pop(self.city))
+        on = bool(self.city.get('kids')); kk = self.app.kids_pop_k(on)
+        self.stats.set(c, b, self.app.one_shift(), (c + b) * kk, (c + b) * (kk - 1) if on else None)
+        self.strip.set_pop(city_pop(self.city), bool(self.city.get('kids')))
         for k, cells in self.foot:
             for l, val in zip(cells, (c, b, c + b)):
                 l.setText(fmt(val / k))
         e = self.city['extra']
         self.o_hc.setText(fmt(math.ceil(c / e['c_house'])) if e['c_house'] else '—')
         self.o_hb.setText(fmt(math.ceil(b / e['b_house'])) if e['b_house'] else '—')
-        board = math.ceil(city_pop(self.city) / e['stop_people']) if e['stop_people'] else 0
+        board = math.ceil(city_pop(self.city) * self.app.kids_pop_k(self.city.get('kids')) / e['stop_people']) if e['stop_people'] else 0
         n = board + e.get('enterprises', 0)                          # 1-2 stops per boarding place and per enterprise
         self.o_board.setText(fmt(board))
         self.o_stops.setText(f'{fmt(n)} – {fmt(2 * n)}' if n else '—')
@@ -1722,7 +2008,9 @@ class CitiesTab(QWidget):
         # totals of all cities: bottom right, under a dividing line (user's layout)
         rule = QFrame(); rule.setObjectName('rule'); v.addWidget(rule)
         bot = QHBoxLayout(); bot.setContentsMargins(0, 2, 6, 0)
-        self.stats = Stats(24); self.stats.setToolTip(tr('Усі міста: середня + вища освіта, одна чи три зміни')); bot.addWidget(self.stats)
+        self.stats = Stats(24, kids_tip=tr('Діти й літні: усі міста одразу')); self.stats.setToolTip(tr('Усі міста: середня + вища освіта, одна чи три зміни'))
+        bot.addWidget(self.stats)
+        self.kids = self.stats.kids; self.kids.clicked.connect(self.toggle_kids_all)
         bot.addSpacing(18)
         self.strip = ResStrip(app, 24); bot.addWidget(self.strip)
         bot.addStretch()
@@ -1750,11 +2038,24 @@ class CitiesTab(QWidget):
         self.app.data['cities'].append(c); self._add_card(c); self.app.cities_changed()
         self.cards[-1].name.setFocus(); self.cards[-1].name.selectAll()
 
+    def toggle_kids_all(self):
+        on = self.kids.isChecked()
+        for c in self.app.data['cities']:
+            c['kids'] = on
+        for cd in self.cards:
+            cd.sync_kids()
+        self.app.rates_changed()
+
     def update_total(self):
-        pop = sum(city_pop(c) for c in self.app.data['cities'])
-        self.strip.set_pop(pop)
-        cs = [cd.totals() for cd in self.cards]
-        self.stats.set(sum(x[0] for x in cs), sum(x[1] for x in cs), self.app.one_shift())
+        # a city switched off is not counted; every city counts its children and elderly by its own icon
+        self.strip.set_pops([(city_pop(c), bool(c.get('kids'))) for c in self.app.data['cities'] if not c.get('off')])
+        self.kids.blockSignals(True); self.kids.setChecked(self.app.kids_all()); self.kids.blockSignals(False)
+        cds = [cd for cd in self.cards if not cd.city.get('off')]
+        cs = [cd.totals() for cd in cds]
+        total = sum((x[0] + x[1]) * self.app.kids_pop_k(cd.city.get('kids')) for x, cd in zip(cs, cds))
+        kids_n = sum((x[0] + x[1]) * (self.app.kids_pop_k(True) - 1) for x, cd in zip(cs, cds) if cd.city.get('kids'))
+        self.stats.set(sum(x[0] for x in cs), sum(x[1] for x in cs), self.app.one_shift(), total,
+                       kids_n if any(cd.city.get('kids') for cd in cds) else None)
 
     def insert_card(self, idx, c):
         if not self._built:
@@ -1780,19 +2081,7 @@ def fixed(w, width, align=Qt.AlignLeft):
 
 class ObjIconPicker(QDialog):
     """icon for a building: a game building, a game resource, or the user's own PNG (stored as 48x48 like the game icons)"""
-    NOT_BUILDINGS = ('tool_worker_', 'tool_line_', 'tool_make_city', 'tool_eletric_', 'tool_pipe', 'tool_road_',
-                    'tool_cableway', 'tool_afgan_', 'tool_afghan_', 'tool_fjord_', 'tool_jungle_', 'tool_palma',
-                    'tool_tallkriak', 'tool_leafkriak', 'tool_tree_', 'tool_area_', 'tool_assign_', 'tool_bojka',
-                    'tool_border_', 'tool_building_add', 'tool_building_copy', 'tool_building_distribution',
-                    'tool_building_near_road', 'tool_christmas_', 'tool_conveyor', 'tool_bulk_engin', 'tool_create_',
-                    'tool_crossroad_', 'tool_erase_', 'tool_paint_', 'tool_terrain_', 'tool_factoryconnection',
-                    'tool_forklift_crossing', 'tool_foreign_', 'tool_group_', 'tool_join_hub', 'tool_namepoint',
-                    'tool_pick_tool', 'tool_random_selected', 'tool_measurement', 'tool_pollution_meter', 'tool_dozimeter',
-                    'tool_fence_', 'tool_gate_', 'tool_heating_pipe', 'tool_sewagepipe', 'tool_waterpipe',
-                    'tool_rail_bridge', 'tool_rail_concrete', 'tool_rail_destroy', 'tool_rail_eletric', 'tool_rail_metro',
-                    'tool_rail_semaphore', 'tool_rail_tunel', 'tool_rail_wood', 'tool_second_road_', 'tool_pedestrian',
-                    'tool_vehicle_', 'tool_water_switch', 'tool_water_to_water', 'tool_water_square', 'tool_water_source',
-                    'tool_sewage_switch', 'tool_airport_road_connection', 'tool_firestation_addfire', 'tool_bulk.png')
+    NOT_BUILDINGS = ('tool_worker_', 'tool_line_', 'tool_make_city', 'tool_eletric_', 'tool_pipe', 'tool_road_', 'tool_cableway')
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1919,7 +2208,7 @@ class CatalogRow:
         show_res(self.production, prod, k, self.app.period()); show_res(self.needs, need, k, self.app.period())
         set_pip(self.pip, self.needs, self.fert if is_field(e) else None)
         for s_, key in ((self.c, 'c'), (self.b, 'b')):
-            s_.blockSignals(True); s_.setReadOnly(one)
+            s_.blockSignals(True); s_.setReadOnly(False)
             s_.setValue(int(round(e.get(key, 0) / (3 if one else 1)))); s_.blockSignals(False)
         t = self.total()
         self.tot.setText(fmt(t / 3 if one else t))
@@ -1932,9 +2221,7 @@ class CatalogRow:
         self.app.store_object(self.name, self.entry(), source=self)
 
     def set_val(self, key, v):
-        if self.app.one_shift():
-            return                                           # one shift is a view: people are kept for 3 shifts
-        self.entry()[key] = v; self.refresh(); self.store()
+        self.entry()[key] = v * (3 if self.app.one_shift() else 1); self.refresh(); self.store()   # 1 shift: kept for 3 shifts
 
     def on_pip(self):
         if is_field(self.entry()):
@@ -2264,7 +2551,7 @@ def _release(obj):
 
 def relaunch_parts():
     pyw = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe')
-    return (pyw if os.path.exists(pyw) else sys.executable), os.path.abspath(__file__), os.path.join(ICONS, 'calc.ico')
+    return (pyw if os.path.exists(pyw) else sys.executable), os.path.abspath(__file__), os.path.join(HERE, 'calc.ico')
 
 
 def win_set_process_id():
@@ -2435,15 +2722,23 @@ class FocusGuard:
 
     def enterEvent(self, e):
         super().enterEvent(e)
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' and self.data['settings'].get('focus_guard', True):
             self._trail = []; self._hover.start(50)
+
+    def set_focus_guard(self, on):
+        self.data['settings']['focus_guard'] = bool(on); self.save_soon()
+        if not on:
+            self._hover.stop()
+            if self._prev_fg:
+                win_give_foreground(self._prev_fg); self._prev_fg = None
+                QApplication.instance().removeEventFilter(self)
 
     def _hover_tick(self):
         p = QCursor.pos()
         if not self.frameGeometry().contains(p):
             self._hover.stop(); return
-        self._trail = (self._trail + [p])[-4:]                      # the last ~150-200 ms
-        if len(self._trail) < 4 or max(abs(q.x() - p.x()) + abs(q.y() - p.y()) for q in self._trail) > 10:
+        self._trail = (self._trail + [p])[-8:]                      # the last ~400 ms: a mouse just crossing the window does not count
+        if len(self._trail) < 8 or max(abs(q.x() - p.x()) + abs(q.y() - p.y()) for q in self._trail) > 10:
             return
         self._hover.stop()
         prev = win_take_foreground(int(self.winId()))
@@ -2454,7 +2749,7 @@ class FocusGuard:
     def leaveEvent(self, e):
         super().leaveEvent(e)
         if sys.platform == 'win32' and self._prev_fg:
-            QTimer.singleShot(300, self._give_back)
+            QTimer.singleShot(700, self._give_back)
 
     def _give_back(self):
         """the mouse rested here but nothing was clicked, typed or scrolled: the game gets its focus back"""
@@ -2508,7 +2803,7 @@ class Main(FocusGuard, QWidget):
         self.setWindowFlag(Qt.WindowStaysOnTopHint, st.get('pinned', True))
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setMouseTracking(True)
-        ico = os.path.join(ICONS, 'calc.png')
+        ico = os.path.join(HERE, 'calc.png')
         if os.path.exists(ico):
             self.setWindowIcon(QIcon(ico))
         self.setStyleSheet(QSS)
@@ -2601,9 +2896,9 @@ class Main(FocusGuard, QWidget):
                         drop(it.widget())
             clear(self.tabs_l); clear(self.toast_l); clear(self.foot_l)
             drop(getattr(self.calc, 'panel', None)); drop(self.calc); drop(self.save_btn)
-            old = (self.cities, self.catalog_tab)                    # the planner page stays in the stack; these leave it after the new pages are in
+            old = (self.cities, self.catalog_tab, self.prod_tab)     # the planner page stays in the stack; these leave it after the new pages are in
         self.tb = []
-        for i, t in enumerate((tr('Міста'), tr("Мої об'єкти"), tr('Планувальник'))):
+        for i, t in enumerate((tr('Міста'), tr("Мої об'єкти"), tr('Виробництво'), tr('Планувальник'))):
             b = QPushButton(t); b.setObjectName('tab'); b.setCheckable(True); b.setCursor(Qt.PointingHandCursor)
             b.clicked.connect(lambda _, i_=i: self.set_tab(i_))
             self.tabs_l.addWidget(b); self.tb.append(b)
@@ -2618,8 +2913,8 @@ class Main(FocusGuard, QWidget):
         self.powered = Powered(); self.foot_l.addWidget(self.powered); self.foot_l.addStretch()
         for w in self.tb + self.lang_btns + [self.powered]:
             w.show()                                                 # a new widget is shown only a moment later: the layout must count it now
-        self.cities = CitiesTab(self); self.catalog_tab = CatalogTab(self)
-        self.stack.insertWidget(0, self.cities); self.stack.insertWidget(1, self.catalog_tab)
+        self.cities = CitiesTab(self); self.catalog_tab = CatalogTab(self); self.prod_tab = ProductionTab(self)
+        self.stack.insertWidget(0, self.cities); self.stack.insertWidget(1, self.catalog_tab); self.stack.insertWidget(2, self.prod_tab)
         if first:
             self.stack.addWidget(self.planner)
         else:
@@ -2704,6 +2999,8 @@ class Main(FocusGuard, QWidget):
                 self.planner.prewarm()
             except Exception:
                 pass
+        elif sys.platform == 'win32':
+            QTimer.singleShot(15000, self._view_ok)                 # the late way survived: next start makes the view first again
         self._idle_t.stop()
 
     def _view_ok(self):
@@ -2736,7 +3033,7 @@ class Main(FocusGuard, QWidget):
             C = B = 0
             for o in c['objects']:
                 n = max(1, o['count']); k = o['prod'] / 100.0 * n / div
-                oc, ob = o['c'] * n, o['b'] * n; C += oc; B += ob
+                oc, ob = o['c'] * staff_n(o), o['b'] * staff_n(o); C += oc; B += ob
                 pr, nd = eff_lists(o)
                 rows.append((None, [c['name'], self.obj_disp(o['name']), o['count'], o['prod'], res_text(pr, k),
                                     res_text(nd, k), R(oc), R(ob), R(oc + ob), R(oc / 3), R(ob / 3), R((oc + ob) / 3)]))
@@ -2768,9 +3065,10 @@ class Main(FocusGuard, QWidget):
                 ('head', [tr('Місто'), tr('Населення')] + [RN(r) for r, _ in G] + [tr('Комунальні') + ': ' + RN(r) for r, _ in U])]
         for c in d['cities']:
             p = city_pop(c)
-            rows.append((None, [c['name'], p] + [R(p / 1000.0 * x / div) for _, x in G + U]))
+            rows.append((None, [c['name'], p] + [R(p / 1000.0 * x * self.kids_k(r, c.get('kids')) / div) for r, x in G + U]))
         allp = sum(city_pop(c) for c in d['cities'])
-        rows.append(('total', [tr('Усі міста'), allp] + [R(allp / 1000.0 * x / div) for _, x in G + U]))
+        rows.append(('total', [tr('Усі міста'), allp] + [R(sum(city_pop(c) * self.kids_k(r, c.get('kids')) for c in d['cities']) / 1000.0 * x / div)
+                                                       for r, x in G + U]))
         sheets.append(dict(title=tr('Ресурси на 1000 жителів'), rows=rows))
         # 4. my buildings (as ordered on the tab), values for 1 building at 100 %
         rows = [title(tr("Мої об'єкти — значення на 1 будівлю")), (None, []),
@@ -2941,6 +3239,7 @@ class Main(FocusGuard, QWidget):
         for card in self.cities.cards:
             card.refresh_rows()
         self.cities.update_total(); self.calc.refresh(); self.catalog_tab.refresh_all()
+        self.prod_tab.refresh(); self.prod_tab.period.sync()
         self.cities.period.sync(); self.catalog_tab.period.sync(); self.save_soon()
 
     def set_one_shift(self, on):
@@ -3014,6 +3313,24 @@ class Main(FocusGuard, QWidget):
 
     def cities_changed(self):
         self.cities.update_total(); self.save_soon()
+        pt = getattr(self, 'prod_tab', None)
+        if pt is not None and self.stack.currentWidget() is pt:
+            pt.refresh()
+
+    def kids_k(self, r, on):
+        """1.3 for a resource when children and elderly are counted (30 % unless the rates dialog says otherwise), else 1"""
+        if not on:
+            return 1.0
+        return 1.0 + self.data.get('kids_pct', {}).get(r, KIDS_DEFAULT) / 100.0
+
+    def kids_pop_k(self, on):
+        """the population itself grows by the percent of the field in the rates dialog (30 % by default) when children and elderly are counted"""
+        return 1.0 + self.data.get('kids_pop_pct', KIDS_DEFAULT) / 100.0 if on else 1.0
+
+    def kids_all(self):
+        """the icon under the cities is on when every city that is not switched off counts them"""
+        cs = [c for c in self.data['cities'] if not c.get('off')]
+        return bool(cs) and all(c.get('kids') for c in cs)
 
     def rates_changed(self):
         """the rates per 1000 residents were edited with the pencil"""
@@ -3102,6 +3419,8 @@ class Main(FocusGuard, QWidget):
                 self.cities.ensure_built()
             elif i == 1:
                 self.catalog_tab.ensure_built()
+            elif i == 2:
+                self.prod_tab.refresh()
             self.stack.setCurrentIndex(i)
             for j, b in enumerate(self.tb):
                 b.setChecked(i == j)
@@ -3177,7 +3496,7 @@ class Main(FocusGuard, QWidget):
 
     def _tack_game(self):
         try:
-            im = Image.open(os.path.join(GAME, 'ui', self.TACK_FILE)).convert('RGBA')
+            im = Image.open(os.path.join(HERE, self.TACK_FILE)).convert('RGBA')
         except Exception:
             return None
         bb = im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
@@ -3250,7 +3569,7 @@ class Main(FocusGuard, QWidget):
         d.ellipse((hx - 12, cy - 12, hx + 12, cy + 12), outline=c, width=2)
         try:
             from PIL import ImageFont
-            fnt = ImageFont.truetype(os.path.join(wr_paths.FONTS, 'Arimo-700.ttf'), 18)
+            fnt = ImageFont.truetype(os.path.join(CM, 'kit', 'fonts', 'Arimo-700.ttf'), 18)
             d.text((hx, cy + 1), '?', font=fnt, fill=c, anchor='mm')
         except Exception:
             d.text((hx - 3, cy - 6), '?', fill=c)
@@ -3294,7 +3613,31 @@ class Main(FocusGuard, QWidget):
             return 'help'
         return 'bar'
 
+    EDGE = 8                                                   # width of the resize zone along every edge
+
+    def edge_at(self, pos):
+        if getattr(self, 'collapsed', False):
+            return Qt.Edges()
+        x, y, m = pos.x(), pos.y(), self.EDGE
+        ed = Qt.Edges()
+        if x < m: ed |= Qt.LeftEdge
+        if x >= self.width() - m: ed |= Qt.RightEdge
+        if y < m: ed |= Qt.TopEdge
+        if y >= self.height() - m: ed |= Qt.BottomEdge
+        return ed
+
+    def edge_cursor(self, ed):
+        L, R, T, B = Qt.LeftEdge, Qt.RightEdge, Qt.TopEdge, Qt.BottomEdge
+        if (ed & L and ed & T) or (ed & R and ed & B):
+            return Qt.SizeFDiagCursor
+        if (ed & R and ed & T) or (ed & L and ed & B):
+            return Qt.SizeBDiagCursor
+        return Qt.SizeHorCursor if ed & (L | R) else Qt.SizeVerCursor
+
     def mousePressEvent(self, e):
+        ed = self.edge_at(e.position().toPoint())
+        if ed and e.button() == Qt.LeftButton and self.windowHandle():
+            self.windowHandle().startSystemResize(ed); return
         b = self.title_button(e.position().toPoint())
         if b == 'close':
             self.close()
@@ -3311,6 +3654,9 @@ class Main(FocusGuard, QWidget):
     def mouseMoveEvent(self, e):
         if self._drag is not None:
             self.move(e.globalPosition().toPoint() - self._drag); return
+        ed = self.edge_at(e.position().toPoint())
+        if ed:
+            QToolTip.hideText(); self.setCursor(self.edge_cursor(ed)); return
         b = self.title_button(e.position().toPoint())
         if b in ('help', 'close', 'minus', 'pin'):
             key = (b, self.data['settings'].get('pinned', True))
@@ -3407,10 +3753,12 @@ class Main(FocusGuard, QWidget):
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
         if self.tray is None:
-            self.tray = QSystemTrayIcon(QIcon(os.path.join(ICONS, 'calc.png')), self)
+            self.tray = QSystemTrayIcon(QIcon(os.path.join(HERE, 'calc.png')), self)
             self.tray.activated.connect(lambda r: self.toggle_visible() if r == QSystemTrayIcon.Trigger else None)
         m = QMenu(); m.setStyleSheet(QSS)
         m.addAction(tr('сховати / показати').capitalize() + f'   {HOTKEY_TEXT}', self.toggle_visible)
+        fg = m.addAction(tr('Автофокус при наведенні миші')); fg.setCheckable(True)
+        fg.setChecked(self.data['settings'].get('focus_guard', True)); fg.toggled.connect(self.set_focus_guard)
         m.addSeparator(); m.addAction(tr('Закрити'), self.close)
         self._tray_menu = m; self.tray.setContextMenu(m)
         self.tray.setToolTip(APP_NAME + f'  ·  {HOTKEY_TEXT}'); self.tray.show()
@@ -3447,14 +3795,14 @@ class Main(FocusGuard, QWidget):
 
     def undo_key(self):
         """Ctrl+Z: on the «Планувальник» tab it undoes the map, elsewhere the deleted city / building"""
-        if self.stack.currentIndex() == 2 and self.planner.view is not None:
+        if self.stack.currentIndex() == 3 and self.planner.view is not None:
             self.planner.run('window.CM && CM.undo()')
         else:
             self.undo()
 
     def open_planner(self, cid):
         """the map icon of a city: open the «Планувальник» tab with that city"""
-        self.set_tab(2); self.planner.activate(cid)
+        self.set_tab(3); self.planner.activate(cid)
 
     def undo(self):
         if not self.undo_stack:
@@ -3484,6 +3832,7 @@ class Main(FocusGuard, QWidget):
             self.planner.flush()
         except Exception:
             pass
+        self.data['settings'].pop('view_try', None)               # a normal exit: the browser view did not crash the program
         self.save()
         if self.tray is not None:
             self.tray.hide()
@@ -3509,7 +3858,7 @@ def main():
         pass
     app = QApplication.instance() or QApplication(sys.argv)
     for f in ('Arimo-400.ttf', 'Arimo-700.ttf'):
-        p = os.path.join(wr_paths.FONTS, f)
+        p = os.path.join(CM, 'kit', 'fonts', f)
         if os.path.exists(p):
             QFontDatabase.addApplicationFont(p)
     app.setFont(QFont('Arimo', 10))
